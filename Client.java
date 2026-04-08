@@ -2,7 +2,7 @@ public class Client{
     private HashMap<int, ChannelContainer> channels;
     private boolean microphone_enabled;
     private boolean camera_enabled;
-    private Socket ServerSocket;
+    private Socket socket;
 
     public Client();
     private void run();

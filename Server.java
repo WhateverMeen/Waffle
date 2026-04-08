@@ -1,7 +1,25 @@
+import java.net.*;
+import java.io.*;
+
 public class Server implements Runnable{
     private Boolean running;
+    
+    private static void main(String[] args){
+        server = Server();
+    }
 
-    private void run_server();
+    private Server(){
+        running = true;
+        run_server();
+    }
+
+    private void run_server(){
+        while (running){
+            ServerSocket serverSocket = null;
+            serverSocket = new serverSocket(4206);
+
+        }
+    }
     private void stop_server();
     private void run();
     private String[] get_friends(String username);
