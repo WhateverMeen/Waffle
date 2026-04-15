@@ -3,22 +3,18 @@ public class ChannelContainer{
     private ArrayList<String> users;
     private ArrayList<String> messages;
 
-<<<<<<< HEAD
-    public String[] getUsers(){
+    public String[] get_users(){
         return users.toArray();
     }
-    public String[] getMessages(){
+    public String[] get_messages(){
         return messages.toArray();
     }
-    public void addMessages(String[] messagesIn){
+    public void add_messages(String[] messagesIn){
         for (int i = 0; i < messagesIn.length; i++){
             this.messages.add(messagesIn[i]);
         }
     }
-=======
-    public String[] getUsers();
-    public String[] getMessages();
-    public String[] getName();
-    public void addMessages(String[] messages);
->>>>>>> 386329d (Finished the EncryptionManager class and expanded on the Client)
+    public String get_name(){
+        return channelName;
+    }
 }

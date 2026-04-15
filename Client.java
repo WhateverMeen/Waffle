@@ -21,9 +21,7 @@ public class Client{
     private ArrayList<String> friend_requests;
     private boolean microphone_enabled;
     private boolean camera_enabled;
-<<<<<<< HEAD
     private Socket socket;
-=======
     private PublicKey client_public_key;
     private PrivateKey client_private_key;
     private PublicKey server_public_key;
@@ -75,8 +73,6 @@ public class Client{
 
         }
     }
->>>>>>> 386329d (Finished the EncryptionManager class and expanded on the Client)
-
     
     //private void request_messages();
     private void request_friends() throws Exception{
