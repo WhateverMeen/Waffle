@@ -16,6 +16,7 @@ public class Client{
 
 
     //State variables
+    private String username;
     private HashMap<Integer, ChannelContainer> channels; //Holds information regarding chats
     private ArrayList<String> friends;
     private ArrayList<String> friend_requests;
@@ -104,7 +105,32 @@ public class Client{
         }
     }
     private void request_channels() throws Exception{
-        //TODO CANNOT BE IMPLEMENTED UNTIL CHANNEL CONTAINER IS DONE
+        String to_send = "GET CHANNELS";
+        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
+        client_out.write('\n');
+        client.flush();
+        
+        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
+        if (!msg[0].equals("NONE"){
+            //Make sure user is in some channels
+            for (int i = 0; i < msg.length; i++){
+                //Iterate over all channels returned and request necessary data for them
+                to_send = "GET CHANNEL_DATA " + String.valueOf(i);
+                client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
+                client_out.write('\n');
+                client_out.flush();
+
+                String[] data = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
+                String[] users = new String[msg.length - 1];
+                for (int j = 1; j < data.length; j++){
+                    //Add a user to users list if it is not the client
+                    if (!data[j].equals(username)){
+                        users.add(data[j]);
+                    }
+                }
+                channels.put(msg[i], new ChannelContainer(data[0], users);
+            }
+        }
     }
 
     private void request_all_current_data() throws Exception{
@@ -126,6 +152,7 @@ public class Client{
             //Server sent back expected response
             if (msg[1].equals("OK")){
                 //Authentication succeeded
+                this.username = username;
                 request_all_current_data();
                 return true;
             } else {
@@ -137,7 +164,26 @@ public class Client{
         return false;
     }
     //public boolean reset_password(String old_password, String new_password);
-    //public boolean send_message(String message, int channel_id);
+    public boolean send_message(String message, int channel_id){
+        String to_send = "PUT " + String.valueOf(channel_id) + " " + message;
+        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
+        client_out.write('\n');
+        client_out.flush();
+
+        String[] msg = EncryptionManager.decrypt_message(to_send, client_private_key));
+        if (msg[0].equals("PUT") && msg.length == 2){
+            //Server replied with correct message
+            if (msg[1].equals("OK")){
+                //Sending the message succeded
+                channels.get(channel_id).addMessage(message); //Add the message to the channelContainer
+                return true;
+            } else {
+                //Sending a message failed
+                return false;
+            }
+        }
+        return false;
+    }
     //public send_photo();
     //public boolean delete_message(Date date, int channel_id);
     //public boolean edit_message(Date date, int channel_id);
