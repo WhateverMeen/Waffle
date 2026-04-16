@@ -18,11 +18,8 @@ public class Client{
     //State variables
     private String username;
     private HashMap<Integer, ChannelContainer> channels; //Holds information regarding chats
-    private ArrayList<String> friends;
-    private ArrayList<String> friend_requests;
     private boolean microphone_enabled;
     private boolean camera_enabled;
-    private Socket socket;
     private PublicKey client_public_key;
     private PrivateKey client_private_key;
     private PublicKey server_public_key;
@@ -38,8 +35,6 @@ public class Client{
     public Client() throws Exception{
         //Initialise state variables
         channels = new HashMap<Integer, ChannelContainer>();
-        friends = new ArrayList<String>();
-        friend_requests = new ArrayList<String>();
         microphone_enabled = false;
         camera_enabled = false;
 
@@ -71,39 +66,12 @@ public class Client{
             client_in.close();
             client_out.close();
         } catch (Exception e){
-
+            e.printStackTrace();
         }
     }
     
     //private void request_messages();
-    private void request_friends() throws Exception{
-        String to_send = "GET FRIENDS";
-        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
-        client_out.write('\n');
-        client_out.flush();
 
-        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
-        if (!msg[0].equals("NONE")){
-            for (int i = 0; i < msg.length; i++){
-                //If there are friends requests
-                friends.add(msg[i]);
-            }
-        }
-    }
-    private void request_friend_requests() throws Exception{
-        String to_send = "GET FRIENDS_REQ";
-        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
-        client_out.write('\n');
-        client_out.flush();
-
-        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
-        if (!msg[0].equals("NONE")){
-            //If there are friends requests
-            for (int i = 0; i < msg.length; i++){
-                friend_requests.add(msg[i]);
-            }
-        }
-    }
     private void request_channels() throws Exception{
         String to_send = "GET CHANNELS";
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
@@ -132,13 +100,8 @@ public class Client{
             }
         }
     }
-
-    private void request_all_current_data() throws Exception{
-        //Function to request all channels the user is in, their friends and friends request upon successful login
-        request_friends();
-        request_friend_requests();
-        request_channels();
-    }
+    
+    //GUI CALL FUNCTION
     public boolean register_account(String username, String password, String email){
         String to_send = "REG " + username + " " + password + " " + email;
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
@@ -157,6 +120,8 @@ public class Client{
             return false;
         }
     }
+
+    //GUI CALL FUNCTION
     public boolean login(String username, String password) throws Exception{
         //Attempt to log the user in, returns false if it failed, true if successful. It also
         String to_send = "AUTH " + username + " " + password;
@@ -170,7 +135,7 @@ public class Client{
             if (msg[1].equals("OK")){
                 //Authentication succeeded
                 this.username = username;
-                request_all_current_data();
+                request_channels();
                 return true;
             } else {
                 //Authentication failed
@@ -182,6 +147,8 @@ public class Client{
     }
 
     //public boolean reset_password(String old_password, String new_password);
+    
+    //GUI CALL FUNCTION
     public boolean send_message(String message, int channel_id){
         String to_send = "PUT " + String.valueOf(channel_id) + " " + message;
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
@@ -202,12 +169,13 @@ public class Client{
         }
         return false;
     }
+
     //public send_photo();
     //public boolean delete_message(Date date, int channel_id);
     //public boolean edit_message(Date date, int channel_id);
     
-    
-    public int create_group(String group_name){
+    //GUI FUNCTION CALL
+    public int create_channel(String group_name){
         //Returns the channel_id, returns -1 if creating the group failed
         String to_send = "MAKE CHANNEL " + group_name;
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key);
@@ -223,7 +191,8 @@ public class Client{
         }
         
     }
-
+    
+    
     //public boolean leave_group(int channel_id);
     //public boolean  join_group(int channel_id);
     //public void delete_group(int channel_id);

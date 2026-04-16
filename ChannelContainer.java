@@ -1,8 +1,11 @@
 public class ChannelContainer{
     private String channelName;
+    private int channel_id;
     private ArrayList<String> users;
     private ArrayList<String> messages;
     
+    //MSG FORMAT <DATE><USERNAME><MSG CONTENT>
+
     public ChannelContainer(String name, String[] usersList){
         channelName = name;
         users = new ArrayList<String>();
@@ -12,6 +15,8 @@ public class ChannelContainer{
             users.add(usersList);
         }
     }
+    
+    
 
     public void addMessage(String msg){
         messages.add(msg);
