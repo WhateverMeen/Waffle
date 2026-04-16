@@ -30,6 +30,7 @@ public class Client{
     private Socket socket;
     private BufferedReader client_in;
     private BufferedWriter client_out;
+    
 
 
     public Client() throws Exception{

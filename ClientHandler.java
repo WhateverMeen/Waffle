@@ -6,6 +6,8 @@ public class ClientHandler implements Runnable{
     private PublicKey server_public_key;
     private PrivateKey server_private_key;
     private PublicKey client_public_key;
+    private boolean running;
+
 
     public ClientHandler(Socket clientSocket){
         socket = clientSocket;
@@ -34,27 +36,91 @@ public class ClientHandler implements Runnable{
                 server_out.write("INVALID REQ\n");
                 server_out.flush();
             }
-
-            while (true){
-                
+            
+            running = true;
+            while (running){
+                msg = EncryptionManager.decrypt_message(server_in.readLine(), server_private_key);
+                interpret_command(msg.split(" "));
             }
+            socket.close();
+            server_in.close();
+            server_out.close();
         } catch (Exception e){
             e.printStackTrace();
         }
     }
+    private void interpret_commands(String[] command){
+        if (msg[0].equals("AUTH")){
+            if (msg.length == 3){
+                authenticate_user(msg[1], msg[2]);
+            } else {
+                server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+            }
+        } else if (msg[0].equals("REG")){
+            if (msg.length == 4){
+                register_user(msg[1], msg[2], msg[3]);
+            } else {
+                server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+            }
+        } else if (msg[0].equals("GET")){
+            if (msg[1].equals("MSG")){
+                
+            } else if (msg[1].equals("CHANNELS")){
+                if (msg.length == 2){
+                    get_channels();
+                } else {
+                    server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+                }
+            } else if (msg[1].equals("CHANNEL_DATA")){
+                if (msg.length == 3){
+                    get_channel_data(Integer.parseInt(msg[2]));
+                } else {
+                    server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+                }
+            } else {
+                server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+            }
+        } else if (msg[0].equals("PUT")){
+            if (msg.length == 3){
+                put_message(Integer.parseInt(msg[1]), msg[2]);
+            } else {
+                server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+            }
+        } else if (msg[0].equals("MAKE")){
+            if (msg.length == 2){
+                create_channel(msg[1]);
+            } else {
+                server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+            }
+        } else if (msg[0].equals("JOIN")){
+            if (msg.length == 2){
+                join_channel(Integer.parseInt(msg[1]);
+            } else {
+                server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+            }
+        } else if (msg[0].equals("LEAVE")){
+            if (msg.length == 2){
+                leave_channel(Integer.parseInt(msg[1]));
+            } else {
+                server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+            }
+        } else if (msg[0].equals("END")){
+            running = false;
+        } else {
+            server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+        }
+    }
 
-    private String[] get_friends(String username);
+    private void register_user(String username, String password, String email);
     private String[] get_channels(String username);
+    private String[] get_channel_data(int channel_id);
     private void start_call(int channel_id);
     private String[] get_messages(int channel_id, stack_top);
     private boolean put_message(int channel_id, String username, String message);
-    //private boolean send_friend_request(String username, String friend_username);
-    //private boolean accept_friend_request(String username, String friend_username);
-    //private void deny_friend_request(String username, String friend_username);
-    //private String[] get_friends_requests(String username);
-    //Private String[] get_friend_list(String username);
     private String[] get_channels(String username);
-    private int create_channel(String channel_name, String username);
+    private boolean join_channel(int channel_id);
+    private boolean leave_channel(int channel_id);
+    private int create_channel(String channel_name);
     private void delete_channel(int channel_id);
     private boolean authenticate_user(String username, String password);
      
