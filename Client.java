@@ -139,7 +139,24 @@ public class Client{
         request_friend_requests();
         request_channels();
     }
-    //public boolean register_account(String username, String password, String email){}
+    public boolean register_account(String username, String password, String email){
+        String to_send = "REG " + username + " " + password + " " + email;
+        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
+        client_out.write('\n');
+        client_out.flush();
+
+        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
+        if (msg[0].equals("REG") && msg.length == 2){
+            //Server sent back an appropriate response
+            if (msg[1].equals("OK"){
+                return true; //If login okay
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
     public boolean login(String username, String password) throws Exception{
         //Attempt to log the user in, returns false if it failed, true if successful. It also
         String to_send = "AUTH " + username + " " + password;
@@ -163,6 +180,7 @@ public class Client{
         //Server ended up sending an incorrect message thus authentication failed. It should be unreachable
         return false;
     }
+
     //public boolean reset_password(String old_password, String new_password);
     public boolean send_message(String message, int channel_id){
         String to_send = "PUT " + String.valueOf(channel_id) + " " + message;
@@ -187,18 +205,32 @@ public class Client{
     //public send_photo();
     //public boolean delete_message(Date date, int channel_id);
     //public boolean edit_message(Date date, int channel_id);
-    //public boolean create_group(String group_name);
+    
+    
+    public int create_group(String group_name){
+        //Returns the channel_id, returns -1 if creating the group failed
+        String to_send = "MAKE CHANNEL " + group_name;
+        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key);
+        client_out.write('\n');
+        client_out.flush();
+
+        String[] msg = EncryptionManager.decrypt_message(to_send, client_private_key));
+        if (msg[0].equals("MAKE") && msg.length == 2){
+            //Server sent back correct message
+            return Integer.parseInt(msg[1]);
+        } else {
+            return -1;
+        }
+        
+    }
+
     //public boolean leave_group(int channel_id);
     //public boolean  join_group(int channel_id);
     //public void delete_group(int channel_id);
     //public boolean start_call(int channel_id);
     //public void leave_call();
     //public void join_call(channel_id);
-    //public boolean send_friend_request(String username);
-    //public boolean accept_friend_request(String username);
-    //public void deny_friend_request(String username);
-    //public void remove_friend(String username);
-    //public void block_user(String username);
+
 
     public void unmute_microphone(){
         microphone_enabled = true;
