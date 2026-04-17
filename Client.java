@@ -1,4 +1,3 @@
-// Sorry in advance , I'm still figuring it out . 
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
@@ -21,7 +20,6 @@ public class Client{
     private HashMap<Integer, ChannelContainer> channels; //Holds information regarding chats
     private boolean microphone_enabled;
     private boolean camera_enabled;
-    private PublicKey client_public_key;
     private PrivateKey client_private_key;
     private PublicKey server_public_key;
 
@@ -42,7 +40,6 @@ public class Client{
 
         //Create encryption keys
         KeyPair keys = EncryptionManager.get_keys();
-        client_public_key = keys.getPublic();
         client_private_key = keys.getPrivate();
         //Establish connection with server and set up the reader and writer
         try {
@@ -54,7 +51,7 @@ public class Client{
         client_out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         
         //Server Handshake
-        client_out.write("HELO " + Base64.getEncoder().encodeToString(client_public_key.getEncoded()) + "\n");//Encode the public key into bytes
+        client_out.write("HELO " + Base64.getEncoder().encodeToString(keys.getPublic().getEncoded()) + "\n");//Encode the public key into bytes
         client_out.flush();
         String[] msg = client_in.readLine().split(" ");
         if (msg[0].equals("HELO") && msg.length == 2){
@@ -77,34 +74,41 @@ public class Client{
     private void request_channels() throws Exception{
         String to_send = "GET CHANNELS";
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
-        client_out.write('\n');
-        client.flush();
-        
-        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
-        if (!msg[0].equals("NONE"){
-            //Make sure user is in some channels
-            for (int i = 0; i < msg.length; i++){
-                //Iterate over all channels returned and request necessary data for them
-                to_send = "GET CHANNEL_DATA " + String.valueOf(i);
-                client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
-                client_out.write('\n');
-                client_out.flush();
+        client_out.write("\n");
+        client_out.flush();
 
-                String[] data = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
-                String[] users = new String[msg.length - 1];
-                for (int j = 1; j < data.length; j++){
-                    //Add a user to users list if it is not the client
-                    if (!data[j].equals(username)){
-                        users.add(data[j]);
-                    }
+        String in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+        ArrayList<Integer> channel_ids = new ArrayList<Integer>();
+        //Iterate over all returns
+        while (!in.equals("LSDONE") && !in.equals("NONE")){
+            channel_ids.add(Integer.parseInt(in));
+            in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+        }
+
+        //Request the data regarding each channel
+        for (int i = 0; i < channel_ids.size(); i++){
+            client_out.write(EncryptionManager.encrypt_message("GET CHANNEL_DATA" + channel_ids.get(i), server_public_key));
+            client_out.write("\n");
+            client_out.flush();
+
+            String channel_name = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+            ArrayList<String> users = new ArrayList<String>();
+            in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+            
+            //Read all users that are in a channel
+            while (!in.equals("LSDONE")){
+                if (!in.equals("username")){
+                    users.add(in);
+                    in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
                 }
-                channels.put(msg[i], new ChannelContainer(data[0], users);
             }
+            
+            channels.put(channel_ids.get(i), new ChannelContainer(channel_name, users.toArray(new String[users.size()])));
         }
     }
     
     //GUI CALL FUNCTION
-    public boolean register_account(String username, String password, String email){
+    public boolean register_account(String username, String password, String email) throws Exception{
         String to_send = "REG " + username + " " + password + " " + email;
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
         client_out.write('\n');
@@ -113,7 +117,7 @@ public class Client{
         String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
         if (msg[0].equals("REG") && msg.length == 2){
             //Server sent back an appropriate response
-            if (msg[1].equals("OK"){
+            if (msg[1].equals("OK")){
                 return true; //If login okay
             } else {
                 return false;
@@ -147,59 +151,140 @@ public class Client{
         //Server ended up sending an incorrect message thus authentication failed. It should be unreachable
         return false;
     }
-
-    //public boolean reset_password(String old_password, String new_password);
     
     //GUI CALL FUNCTION
-    public boolean send_message(String message, int channel_id){
-        String to_send = "PUT " + String.valueOf(channel_id) + " " + message;
+    public boolean send_message(String message, int channel_id) throws Exception{
+        String[] msg_lines = message.split("\n");
+        
+        client_out.write(EncryptionManager.encrypt_message("PUT " + channel_id, server_public_key));
+        client_out.write("\n");
+        client_out.flush();
+
+        for (int i = 0; i < msg_lines.length; i++){
+            client_out.write(EncryptionManager.encrypt_message(msg_lines[i], server_public_key));
+            client_out.write("\n");
+            client_out.flush();
+        }
+
+        client_out.write(EncryptionManager.encrypt_message("MSDONE", server_public_key));
+        client_out.write("\n");
+        client_out.flush();
+
+        //Check if the put was okay
+        String[] in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
+        if (in[0].equals("PUT") && in.length == 2){
+            //Server sent correct response
+            if (in[1].equals("OK")){
+                //Add the message to the channel data
+                channels.get(channel_id).addMessage(message);;
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    //GUI FUNCTION CALL
+    public int create_channel(String channel_name) throws Exception{
+        //Returns the channel_id, returns -1 if creating the group failed
+        String to_send = "MAKE CHANNEL " + channel_name;
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
         client_out.write('\n');
         client_out.flush();
 
-        String[] msg = EncryptionManager.decrypt_message(to_send, client_private_key));
-        if (msg[0].equals("PUT") && msg.length == 2){
-            //Server replied with correct message
-            if (msg[1].equals("OK")){
-                //Sending the message succeded
-                channels.get(channel_id).addMessage(message); //Add the message to the channelContainer
-                return true;
-            } else {
-                //Sending a message failed
-                return false;
-            }
-        }
-        return false;
-    }
-
-    //public send_photo();
-    //public boolean delete_message(Date date, int channel_id);
-    //public boolean edit_message(Date date, int channel_id);
-    
-    //GUI FUNCTION CALL
-    public int create_channel(String group_name){
-        //Returns the channel_id, returns -1 if creating the group failed
-        String to_send = "MAKE CHANNEL " + group_name;
-        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key);
-        client_out.write('\n');
-        client_out.flush();
-
-        String[] msg = EncryptionManager.decrypt_message(to_send, client_private_key));
+        String[] msg = EncryptionManager.decrypt_message(to_send, client_private_key).split(" ");
         if (msg[0].equals("MAKE") && msg.length == 2){
             //Server sent back correct message
+            if (Integer.parseInt(msg[1]) != -1){
+                //Add the channel to channel list if made successfully
+                channels.put(Integer.parseInt(msg[1]), new ChannelContainer(channel_name, username));
+            }
             return Integer.parseInt(msg[1]);
+
         } else {
             return -1;
         }
         
     }
     
+
+     // SEND LEAVE COMMAND -> CHECK SERVER -> IF LEAVE OK -> RETURN TRUE channell ( hasmap , see paramet , ) -> Remove from Channels 
     
-    //public boolean leave_group(int channel_id);
-    //public boolean  join_group(int channel_id);
-    //public void delete_group(int channel_id);
+     public boolean leave_channel(int channel_id) throws Exception{
+        client_out.write(EncryptionManager.encrypt_message("LEAVE " + channel_id, server_public_key));
+        client_out.write('\n');
+        client_out.flush();
+
+        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
+        if (msg[0].equals("LEAVE") && msg.length == 2){
+            //Server sent correct response
+            if (msg[1].equals("OK")){
+                // Clean the server and remove data from the channels hashmap
+                client_out.write(EncryptionManager.encrypt_message("REMOVE CHANNEL_DATA " + channel_id, server_public_key));
+                client_out.write("\n");
+                client_out.flush();
+                channels.remove(channel_id);
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+
+     }
+
+
+     // JUST WORK ON CLIENT MESSAGES [ IN -> OUT ] ; client in () , client out () ;
+    
+    // CLIENT OUT ; ENNCRYPT EVERYTHING ; FLUSH --- Message OUT 
+    //                                          ----  MESSAGE IN ;
+    
+    
+
+    
+    //GUI CALL FUNCTION
+    public boolean join_channel(int channel_id) throws Exception{
+        client_out.write(EncryptionManager.encrypt_message("JOIN " + channel_id, server_public_key));
+        client_out.write('\n');
+        client_out.flush();
+
+        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
+        if (msg[0].equals("JOIN") && msg.length == 2){
+            //Server sent correct response
+            if (msg[1].equals("OK")){
+                //Request channel data and add it to the channels hashmap
+                client_out.write(EncryptionManager.encrypt_message("GET CHANNEL_DATA " + channel_id, server_public_key));
+                client_out.write("\n");
+                client_out.flush();
+
+                String channel_name = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+                ArrayList<String> users = new ArrayList<String>();
+                String in = EncryptionManager.decrypt_message(channel_name, client_private_key);
+                //Read in all users that are a part of the channel
+                while (!in.equals("LSDONE")){
+                    if (!in.equals(username)){
+                        users.add(in);
+                    }
+                }
+                channels.put(channel_id, new ChannelContainer(channel_name, users.toArray(new String[users.size()])));
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    //  SORT OUT LATER ;  IGNORE FOR NOW 
     //public boolean start_call(int channel_id);
+
+    // REFERENCE 
     //public void leave_call();
+    
     //public void join_call(channel_id);
 
 
