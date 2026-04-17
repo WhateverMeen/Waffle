@@ -1,17 +1,24 @@
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class Message{
-    public String message;
-    public String username;
-    public LocalDateTime date;
+    private String message;
+    private String username;
+    private LocalDate date;
+    private LocalTime time; 
 
-    public Message(String message, String username, LocalDateTime date){
+    public Message(String message, String username, LocalDate date, LocalTime time){
         this.message = message;
         this.username = username;
         this.date = date;
+        this.time = time;
     }
 
-    public LocalDateTime get_date(){
+    public LocalTime get_time(){
+        return time;
+    }
+
+    public LocalDate get_date(){
         return date;
     }
 

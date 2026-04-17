@@ -7,6 +7,9 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Set;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.PrivateKey;
@@ -30,8 +33,6 @@ public class Client{
     private Socket socket;
     private BufferedReader client_in;
     private BufferedWriter client_out;
-    
-
 
     public Client() throws Exception{
         //Initialise state variables
@@ -70,7 +71,7 @@ public class Client{
         }
     }
     
-    public int[] getChannel_ids(){
+    public Integer[] getChannel_ids(){
         //Returns all channel ids the client stores
         Set<Integer> ids = channels.keySet();
         return ids.toArray(new Integer[ids.size()]);
@@ -81,15 +82,15 @@ public class Client{
         return channels.get(channel_id).get_name();
     }
 
-    public Messages[] getMessages(int channel_id){
+    public Message[] getMessages(int channel_id){
         return channels.get(channel_id).get_messages();
     }
 
-    public void request_messages(int channel_id){
+    public void request_messages(int channel_id) throws Exception{
         client_out.write(EncryptionManager.encrypt_message("GET MSG " + channel_id, server_public_key));
         client_out.write('\n');
 
-        String[] msg = EncryptionManager.encrypt_message(client_in.readLine(), client_private_key);
+        String msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
         //TOFINISH
     }
 
@@ -198,7 +199,7 @@ public class Client{
             //Server sent correct response
             if (in[1].equals("OK")){
                 //Add the message to the channel data
-                channels.get(channel_id).addMessage(message);;
+                channels.get(channel_id).addMessage(new Message(message, username, LocalDate.now(), LocalTime.now()));
                 return true;
             } else {
                 return false;
@@ -243,7 +244,7 @@ public class Client{
             //Server sent correct response
             if (msg[1].equals("OK")){
                 // Remove Channel Container from channels hashmap
-                channels.remove(channel_id)
+                channels.remove(channel_id);
                 return true;
             } else {
                 return false;

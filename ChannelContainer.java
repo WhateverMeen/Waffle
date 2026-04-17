@@ -9,7 +9,7 @@ public class ChannelContainer{
     public ChannelContainer(String name, String[] usersList){
         channelName = name;
         users = new ArrayList<String>();
-        messages = new ArrayList<String>();
+        messages = new ArrayList<Message>();
 
         for (int i = 0; i < usersList.length; i++){
             users.add(usersList[i]);
@@ -19,7 +19,7 @@ public class ChannelContainer{
     public ChannelContainer(String name, String user){
         channelName = name;
         users = new ArrayList<String>();
-        messages = new ArrayList<String>();
+        messages = new ArrayList<Message>();
         users.add(user);
     }
     
@@ -30,11 +30,11 @@ public class ChannelContainer{
     public String[] get_users(){
         return users.toArray(new String[users.size()]);
     }
-    public Messages[] get_messages(){
-        return messages.toArray(new Messages[messages.size()]);
+    public Message[] get_messages(){
+        return messages.toArray(new Message[messages.size()]);
     }
 
-    public void add_messages(Messages[] messagesIn){
+    public void add_messages(Message[] messagesIn){
         for (int i = 0; i < messagesIn.length; i++){
             this.messages.add(messagesIn[i]);
         }
