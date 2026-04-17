@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class ChannelContainer{
     private String channelName;
     private int channel_id;
@@ -12,10 +14,16 @@ public class ChannelContainer{
         messages = new ArrayList<String>();
 
         for (int i = 0; i < usersList.length; i++){
-            users.add(usersList);
+            users.add(usersList[i]);
         }
     }
     
+    public ChannelContainer(String name, String user){
+        channelName = name;
+        users = new ArrayList<String>();
+        messages = new ArrayList<String>();
+        users.add(user);
+    }
     
 
     public void addMessage(String msg){
@@ -23,10 +31,10 @@ public class ChannelContainer{
     }
 
     public String[] get_users(){
-        return users.toArray();
+        return users.toArray(new String[users.size()]);
     }
     public String[] get_messages(){
-        return messages.toArray();
+        return messages.toArray(new String[messages.size()]);
     }
     public void add_messages(String[] messagesIn){
         for (int i = 0; i < messagesIn.length; i++){
