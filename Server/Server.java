@@ -38,8 +38,11 @@ public class Server{
             }
         } catch (Exception e){
             e.printStackTrace();
+            SQLManager.close_con();
         }
     }
+
+    
 
     public void authorise_client(int user_id, int unauthorised_id){
         //Add the client to the authorised_clients and make its id the user_id
