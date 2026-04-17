@@ -213,19 +213,16 @@ public class Client{
      // SEND LEAVE COMMAND -> CHECK SERVER -> IF LEAVE OK -> RETURN TRUE channell ( hasmap , see paramet , ) -> Remove from Channels 
     
      public boolean leave_channel(int channel_id) throws Exception{
-        client_out.write(EncryptionManager.encrypt_message("LEAVE " + channel_id, server_public_key));
+        client_out.write(EncryptionManager.encrypt_message("LEAVE SERVER" + channel_id, server_public_key));
         client_out.write('\n');
         client_out.flush();
 
         String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
-        if (msg[0].equals("LEAVE") && msg.length == 2){
+        if (msg[0].equals("LEAVE SERVER") && msg.length == 2){
             //Server sent correct response
             if (msg[1].equals("OK")){
-                // Clean the server and remove data from the channels hashmap
-                client_out.write(EncryptionManager.encrypt_message("REMOVE CHANNEL_DATA " + channel_id, server_public_key));
-                client_out.write("\n");
-                client_out.flush();
-                channels.remove(channel_id);
+                // Remove Channel Container from channels hashmap
+                channells.remove(channel_id)
                 return true;
             } else {
                 return false;
