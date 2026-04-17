@@ -5,6 +5,7 @@ import java.util.Stack;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.Set;
 
 import java.security.KeyPair;
 import java.security.PublicKey;
@@ -58,7 +59,7 @@ public class Client{
             server_public_key = EncryptionManager.public_key_from_string(msg[1]); //Extract servers public key from the message received
         }
     }
-
+    
     public void quit(){
         try{
             socket.close();
@@ -69,7 +70,28 @@ public class Client{
         }
     }
     
-    //private void request_messages();
+    public int[] getChannel_ids(){
+        //Returns all channel ids the client stores
+        Set<Integer> ids = channels.keySet();
+        return ids.toArray(new Integer[ids.size()]);
+    }
+
+    public String getChannelName(int channel_id){
+        //gui function call, returns the name of the channel with the channel_id
+        return channels.get(channel_id).get_name();
+    }
+
+    public Messages[] getMessages(int channel_id){
+        return channels.get(channel_id).get_messages();
+    }
+
+    public void request_messages(int channel_id){
+        client_out.write(EncryptionManager.encrypt_message("GET MSG " + channel_id, server_public_key));
+        client_out.write('\n');
+
+        String[] msg = EncryptionManager.encrypt_message(client_in.readLine(), client_private_key);
+        //TOFINISH
+    }
 
     private void request_channels() throws Exception{
         String to_send = "GET CHANNELS";
@@ -210,18 +232,28 @@ public class Client{
     }
     
 
-     // SEND LEAVE COMMAND -> CHECK SERVER -> IF LEAVE OK -> RETURN TRUE channell ( hasmap , see paramet , ) -> Remove from Channels 
     
-    //public boolean leave_channel(int channel_id);
+    public boolean leave_channel(int channel_id) throws Exception{
+        client_out.write(EncryptionManager.encrypt_message("LEAVE " + channel_id, server_public_key));
+        client_out.write('\n');
+        client_out.flush();
 
+        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
+        if (msg[0].equals("LEAVE") && msg.length == 2){
+            //Server sent correct response
+            if (msg[1].equals("OK")){
+                // Remove Channel Container from channels hashmap
+                channels.remove(channel_id)
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
 
-     // JUST WORK ON CLIENT MESSAGES [ IN -> OUT ] ; client in () , client out () ;
-    // CLIENT OUT ; ENNCRYPT EVERYTHING ; FLUSH --- Message OUT 
-    //                                          ----  MESSAGE IN ;
-    // IGNORE start call () ; 
+    }
 
-    
-    //GUI CALL FUNCTION
     public boolean join_channel(int channel_id) throws Exception{
         client_out.write(EncryptionManager.encrypt_message("JOIN " + channel_id, server_public_key));
         client_out.write('\n');
