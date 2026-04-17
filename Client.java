@@ -209,9 +209,18 @@ public class Client{
         
     }
     
+
+     // SEND LEAVE COMMAND -> CHECK SERVER -> IF LEAVE OK -> RETURN TRUE channell ( hasmap , see paramet , ) -> Remove from Channels 
     
     //public boolean leave_channel(int channel_id);
 
+
+     // JUST WORK ON CLIENT MESSAGES [ IN -> OUT ] ; client in () , client out () ;
+    // CLIENT OUT ; ENNCRYPT EVERYTHING ; FLUSH --- Message OUT 
+    //                                          ----  MESSAGE IN ;
+    // IGNORE start call () ; 
+
+    
     //GUI CALL FUNCTION
     public boolean join_channel(int channel_id) throws Exception{
         client_out.write(EncryptionManager.encrypt_message("JOIN " + channel_id, server_public_key));
@@ -245,8 +254,13 @@ public class Client{
             return false;
         }
     }
+
+    //  SORT OUT LATER ; 
     //public boolean start_call(int channel_id);
+
+    // REFERENCE 
     //public void leave_call();
+    
     //public void join_call(channel_id);
 
 
