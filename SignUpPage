@@ -10,6 +10,7 @@ public class SignUpPage extends JFrame {
     private JPasswordField confirm_password_field;
     private JButton sign_up_button;
     private JLabel status_label;
+    private JButton back_button;
 
     public SignUpPage() {
         setTitle("Sign Up");
@@ -24,6 +25,7 @@ public class SignUpPage extends JFrame {
         confirm_password_field = new JPasswordField();
         sign_up_button = new JButton("Sign Up");
         status_label = new JLabel("");
+        back_button = new JButton("Back to Login");
 
         // Add components to the frame
         add(new JLabel("Username:"));
@@ -36,9 +38,16 @@ public class SignUpPage extends JFrame {
         add(confirm_password_field);
         add(sign_up_button);
         add(status_label);
+        add(back_button);
 
-        // Add action listener to the sign-up button
+        // Add action listener to sign-up button
         sign_up_button.addActionListener(this::handleSignUp);
+
+        // Add action listener to back button
+        back_button.addActionListener((ActionEvent e) -> {
+            new LoginPage();
+            dispose();
+        });
 
         setVisible(true);
     }
