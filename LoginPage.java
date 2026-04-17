@@ -47,6 +47,52 @@ public class LoginPage extends JFrame {
                 ex.printStackTrace();
             }
         });
+
+        register_button.addActionListener((ActionEvent e) -> {
+            // Handle registration logic
+            new SignUpPage();
+            dispose();
+        });
+
+        setVisible(true);
+    }
+
+    private void handleLogin() throws Exception {
+        String username = username_field.getText();
+        String password = new String(password_field.getPassword());
+
+        if (client == null) {
+            statusLabel.setText("Not connected to server.");
+            return;
+        }
+            
+        boolean success = client.login(username, password);
+
+        if (success) {
+            statusLabel.setText("Login successful!");
+            // Proceed to main application window
+        } else {
+            statusLabel.setText("Invalid username or password.");
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(LoginPage::new);
+    }
+}
+            add(login_button);
+        add(register_button);
+        add(statusLabel);
+
+        login_button.addActionListener((ActionEvent e) -> {
+            try {
+                handleLogin();
+            }
+            catch (Exception ex) {
+                statusLabel.setText("Connection error.");
+                ex.printStackTrace();
+            }
+        });
         setVisible(true);
     }
 
