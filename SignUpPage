@@ -5,7 +5,6 @@ import java.awt.event.ActionEvent;
 public class SignUpPage extends JFrame {
 
     private JTextField username_field;
-    private JTextField email_field;
     private JPasswordField password_field;
     private JPasswordField confirm_password_field;
     private JButton sign_up_button;
@@ -20,7 +19,6 @@ public class SignUpPage extends JFrame {
 
         // Initialize components
         username_field = new JTextField();
-        email_field = new JTextField();
         password_field = new JPasswordField();
         confirm_password_field = new JPasswordField();
         sign_up_button = new JButton("Sign Up");
@@ -30,8 +28,6 @@ public class SignUpPage extends JFrame {
         // Add components to the frame
         add(new JLabel("Username:"));
         add(username_field);
-        add(new JLabel("Email:"));
-        add(email_field);
         add(new JLabel("Password:"));
         add(password_field);
         add(new JLabel("Confirm Password:"));
@@ -54,11 +50,10 @@ public class SignUpPage extends JFrame {
 
     public void handleSignUp(ActionEvent e) {
         String username = username_field.getText();
-        String email = email_field.getText();
         String password = new String(password_field.getPassword());
         String confirmPassword = new String(confirm_password_field.getPassword());
 
-        if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+        if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             status_label.setText("Please fill in all fields.");
             return;
         }
