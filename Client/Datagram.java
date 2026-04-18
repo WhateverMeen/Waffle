@@ -61,5 +61,6 @@ public class Datagram{
             packed[index] = audio_buffer[i];
             index++;
         }
+        return packed;
     }
 }

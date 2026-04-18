@@ -9,7 +9,7 @@ import java.util.Base64;
 
 import java.sql.ResultSet;
 
-public class ClientHandler implements Runnable{
+public class ClientHandler extends Thread{
     private Server mainServer;
     private int unauthorised_id;
 
@@ -33,11 +33,16 @@ public class ClientHandler implements Runnable{
         unauthorised_id = id;
     }
 
-    private void kill_self(){
+    public void kill_self(){
         if (authorised){
             mainServer.kill_client(user_id, authorised);
         } else {
             mainServer.kill_client(unauthorised_id, authorised);
+        }
+        try{
+            socket.close();
+        } catch (Exception e){
+            System.out.println("Failed to close connection when killing thread");
         }
         running = false;
     }
@@ -55,6 +60,9 @@ public class ClientHandler implements Runnable{
             
             //Do the server handshake
             String[] msg = server_in.readLine().split(" ");
+            while (msg == null){
+                msg = server_in.readLine().split(" ");
+            }
             if (msg[0].equals("HELO") && msg.length == 2){
                 //Client sent the correct message
                 client_public_key = EncryptionManager.public_key_from_string(msg[1]);
@@ -80,6 +88,12 @@ public class ClientHandler implements Runnable{
     }
 
     private void interpret_command(String[] command){
+
+        for (int i = 0; i < command.length; i++){
+            System.out.print(command[i] + " ");
+        }
+        System.out.println("");
+        
         try {
             if (command[0].equals("AUTH")){
                 //User is attempting to log in
@@ -245,6 +259,7 @@ public class ClientHandler implements Runnable{
     }
 
     private void register_user(String username, String password){
+        System.out.println("Attempting to register user");
         try {
             ResultSet rs = SQLManager.execute_query("SELECT username FROM users", false);
             if (rs != null && rs.next()){   

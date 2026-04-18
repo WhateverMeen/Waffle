@@ -131,8 +131,8 @@ public class Client{
     }
     
     //GUI CALL FUNCTION
-    public boolean register_account(String username, String password, String email) throws Exception{
-        String to_send = "REG " + username + " " + password + " " + email;
+    public boolean register_account(String username, String password) throws Exception{
+        String to_send = "REG " + username + " " + password;
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
         client_out.write('\n');
         client_out.flush();
