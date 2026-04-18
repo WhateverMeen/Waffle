@@ -1,0 +1,73 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+
+public class SignUpPage extends JFrame {
+
+    private JTextField username_field;
+    private JPasswordField password_field;
+    private JPasswordField confirm_password_field;
+    private JButton sign_up_button;
+    private JLabel status_label;
+    private JButton back_button;
+
+    public SignUpPage() {
+        setTitle("Sign Up");
+        setSize(400, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new GridLayout(7, 2));
+
+        // Initialize components
+        username_field = new JTextField();
+        password_field = new JPasswordField();
+        confirm_password_field = new JPasswordField();
+        sign_up_button = new JButton("Sign Up");
+        status_label = new JLabel("");
+        back_button = new JButton("Back to Login");
+
+        // Add components to the frame
+        add(new JLabel("Username:"));
+        add(username_field);
+        add(new JLabel("Password:"));
+        add(password_field);
+        add(new JLabel("Confirm Password:"));
+        add(confirm_password_field);
+        add(sign_up_button);
+        add(status_label);
+        add(back_button);
+
+        // Add action listener to sign-up button
+        sign_up_button.addActionListener(this::handleSignUp);
+
+        // Add action listener to back button
+        back_button.addActionListener((ActionEvent e) -> {
+            new LoginPage();
+            dispose();
+        });
+
+        setVisible(true);
+    }
+
+    public void handleSignUp(ActionEvent e) {
+        String username = username_field.getText();
+        String password = new String(password_field.getPassword());
+        String confirmPassword = new String(confirm_password_field.getPassword());
+
+        if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+            status_label.setText("Please fill in all fields.");
+            return;
+        }
+
+        if (!password.equals(confirmPassword)) {
+            status_label.setText("Passwords do not match.");
+            return;
+        }
+
+        // Add code to save details to database
+        status_label.setText("Sign-up successful!");
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(SignUpPage::new);
+    }
+}
