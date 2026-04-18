@@ -27,7 +27,9 @@ public class Server{
     
     public void run(){
         try {
+            System.out.println("Setting up server...");
             ServerSocket serverSocket = new ServerSocket(PORT_NUMBER);
+            System.out.println("Running server!");
             while (true){
                 //Wait for the client to connect
                 Socket clientSocket = serverSocket.accept();
