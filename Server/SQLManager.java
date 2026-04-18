@@ -2,7 +2,7 @@ import java.sql.*;
 
 public class SQLManager{ 
     // Need to call close con when server stops running as it closes conections 
-    private static final String URL = "jdbc:sqlite:./Waffle.db"; //Connection to db, creates a file
+    private static final String URL = "jdbc:sqlite:./waffle.db"; //Connection to db, creates a file
     private static boolean first_run = true;
     private static Connection con = null;
     private static Statement state = null;
