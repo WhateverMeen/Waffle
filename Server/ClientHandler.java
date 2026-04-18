@@ -88,12 +88,7 @@ public class ClientHandler extends Thread{
     }
 
     private void interpret_command(String[] command){
-
-        for (int i = 0; i < command.length; i++){
-            System.out.print(command[i] + " ");
-        }
-        System.out.println("");
-        
+       
         try {
             if (command[0].equals("AUTH")){
                 //User is attempting to log in
