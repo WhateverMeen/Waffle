@@ -43,11 +43,14 @@ public class SQLManager{
     }
 
     public static void close_con(){// Function to close connections
-        try {
-            con.close();
-            state.close();
-        } catch (Exception e){
-            e.printStackTrace();
+        if (con != null && state != null){
+            try {
+                con.close();
+                state.close();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
         }
+        
     }
 }

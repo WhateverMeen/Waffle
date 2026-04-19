@@ -13,6 +13,9 @@ public class Server extends Thread{
 
     private int unauthorised_count;
     private boolean running;
+    
+    ServerSocket serverSocket;
+
 
     public Server(){
         unauthorised_clients = new ConcurrentHashMap<Integer, ClientHandler>();
@@ -22,7 +25,9 @@ public class Server extends Thread{
     
     public void run(){
         running = true;
-        try (ServerSocket serverSocket = new ServerSocket(PORT_NUMBER)){
+        
+        try {
+            serverSocket = new ServerSocket(PORT_NUMBER);
             System.out.println("Setting up server...");
             System.out.println("Running server! Server listening at: " + serverSocket.getInetAddress());
             while (running){
@@ -34,9 +39,11 @@ public class Server extends Thread{
                 unauthorised_count++;
             }
         } catch (Exception e){
-            e.printStackTrace();
-            //Kill all threads
-            stop_clients();  
+
+            if (running){
+                //Server crashed
+                e.printStackTrace();
+            }
             SQLManager.close_con();
         }
     }
@@ -53,8 +60,17 @@ public class Server extends Thread{
     }
 
     public void stop_server(){
+        System.out.println("Stopping server");
         stop_clients();
-        
+        try {
+            if (serverSocket != null){
+                //In case the server was closed before the socket was created
+                serverSocket.close();
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        running = false;
     }
 
     public void authorise_client(int user_id, int unauthorised_id){

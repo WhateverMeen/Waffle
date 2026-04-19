@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
-
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.PrivateKey;
@@ -59,13 +60,18 @@ public class ClientHandler extends Thread{
             server_out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             
             //Do the server handshake
+            //WATING FOR HELLO
             String[] msg = server_in.readLine().split(" ");
             while (msg == null){
-                msg = server_in.readLine().split(" ");
-            }
+                //CLient disconnected, exit early
+                System.out.println("Client disconnected");
+                kill_self();
+                return;
+            } 
+            
             if (msg[0].equals("HELO") && msg.length == 2){
                 //Client sent the correct message
-                client_public_key = EncryptionManager.public_key_from_string(msg[1]);
+                client_public_key = EncryptionManager.public_key_from_string(msg[1]); 
                 server_out.write("HELO " + Base64.getEncoder().encodeToString(server_public_key.getEncoded()) + "\n");
                 server_out.flush();
             } else {
@@ -76,19 +82,30 @@ public class ClientHandler extends Thread{
             
             running = true;
             while (running){
-                msg = EncryptionManager.decrypt_message(server_in.readLine(), server_private_key).split(" ");
+                String read = server_in.readLine();
+                if (read == null){
+                    //Client disconnected
+                    System.out.println("Client Disconnected");
+                    kill_self();
+                    return;
+                    
+                }
+                String recieved = EncryptionManager.decrypt_message(read, server_private_key);
+                msg =  recieved.split(" ");
+                System.out.println(recieved);
                 interpret_command(msg);
             }
             socket.close();
             server_in.close();
             server_out.close();
+            kill_self();
+
         } catch (Exception e){
             e.printStackTrace();
         }
     }
 
-    private void interpret_command(String[] command){
-       
+    private void interpret_command(String[] command){      
         try {
             if (command[0].equals("AUTH")){
                 //User is attempting to log in
@@ -142,12 +159,15 @@ public class ClientHandler extends Thread{
             } else if (command[0].equals("PUT")){
                 //User wants to send a message
                 if (authorised){
-                    if (command.length == 3){
+                    if (command.length == 2){
                         String temp;
                         String userMessage = "";
-                        while (!(temp = server_in.readLine()).equals("MSDONE")){
+                        while (!(temp = EncryptionManager.decrypt_message(server_in.readLine(), server_private_key)).equals("MSDONE")){
+                            System.out.println(temp);
                             userMessage += temp + '\n';
                         }
+                        System.out.println(temp);
+                        userMessage.substring(0, userMessage.length() - 1); //Remove the last \n
                         put_message(Integer.parseInt(command[1]), userMessage);
                     } else {
                         server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
@@ -223,19 +243,19 @@ public class ClientHandler extends Thread{
 
     private void authenticate_user(String username, String password){
         try {
-            ResultSet rs = SQLManager.execute_query("SELECT user_id, username, password FROM Users WHERE username = " + username, false);
+            ResultSet rs = SQLManager.execute_query("SELECT user_id, username, password FROM Users WHERE username = '" + username + "'", false);
             if (rs.next()){
                 //User with such username exists
-                if (rs.getNString(2).equals(username) && rs.getNString(3).equals(password)){
+                if (rs.getString(2).equals(username) && rs.getString(3).equals(password)){
                     //Set clients status to authorised
                     authorised = true;
                     this.username = username;
-                    user_id = rs.getInt(1);
-
+                    System.out.println("User_id of client: " + user_id);
                     //Let client know authentication succeded
                     server_out.write(EncryptionManager.encrypt_message("AUTH OK", client_public_key));
                     server_out.write('\n');
                     server_out.flush();
+                    mainServer.authorise_client(user_id, unauthorised_id);
                 } else {
                     server_out.write(EncryptionManager.encrypt_message("AUTH BAD", client_public_key));
                     server_out.write('\n');
@@ -257,40 +277,41 @@ public class ClientHandler extends Thread{
         System.out.println("Attempting to register user");
         try {
             ResultSet rs = SQLManager.execute_query("SELECT username FROM users", false);
-            if (rs != null && rs.next()){   
-                boolean user_exists = false;
-                //Iterate through all rows in the result to see if username already exists
-                do {
-                    if (rs.getNString(1) == username){
-                        user_exists = true;
-                        break; //Leave loop early if user is in the list
-                    }
-                } while (rs.next()); //Repeat as long as there is a next row
+            if (rs != null){
+                if (rs.next()){
+                    boolean user_exists = false;
+                    //Iterate through all rows in the result to see if username already exists
+                    do {
+                        if (rs.getString(1).equals(username)){
+                            user_exists = true;
+                            break; //Leave loop early if user is in the list
+                        }
+                    } while (rs.next()); //Repeat as long as there is a next row
 
-                if (!user_exists){
-                    //User does not exist hence send REG OK to client 
-                    //Find the highest user_id
-                    rs = SQLManager.execute_query("SELECT user_id FROM Users ORDER BY user_id DESC", false);
-                    
-                    if(rs.next()){
-                        //There is already users in the database
-                        int user_id = rs.getInt(1) + 1;
+                    if (!user_exists){
+                        //User does not exist hence send REG OK to client 
+                        //Find the highest user_id
+                        rs = SQLManager.execute_query("SELECT user_id FROM Users ORDER BY user_id DESC", false);
+                        int user_id_to_assign;
+                        rs.next();
+                        user_id_to_assign = rs.getInt(1) + 1;
+                        //Add user to db
+                        SQLManager.execute_query("INSERT INTO users (user_id, username, password) VALUES (" + user_id_to_assign + ", '" + username + "', '" + password + "')", true);
+                        //Send ok to user
+                        server_out.write(EncryptionManager.encrypt_message("REG OK", client_public_key));
+                        server_out.write('\n');
+                        server_out.flush();
                     } else {
-                        //There is no users in the database
-                        int user_id = 0;
+                        server_out.write(EncryptionManager.encrypt_message("REG BAD", client_public_key));
+                        server_out.write('\n');
+                        server_out.flush();
                     }
-                    //Add user to db
-                    rs = SQLManager.execute_query("INSERT INTO users (user_id, username, password) VALUES (" + user_id + ", " + username + "," + password + ")", true);
-                    //Send ok to user
-                    server_out.write(EncryptionManager.encrypt_message("REG OK", client_public_key));
-                    server_out.write('\n');
-                    server_out.flush();
                 } else {
-                    server_out.write(EncryptionManager.encrypt_message("REG BAD", client_public_key));
-                    server_out.write('\n');
-                    server_out.flush();
+                    SQLManager.execute_query("INSERT INTO users (user_id, username, password) VALUES (" + 0 + ", '" + username + "', '" + password + "')", true);
+                        server_out.write(EncryptionManager.encrypt_message("REG OK", client_public_key));
+                        server_out.write('\n');
+                        server_out.flush();
                 }
-
             } else {
                 server_out.write(EncryptionManager.encrypt_message("INVALID REQUEST", client_public_key));
                 server_out.write('\n');
@@ -304,7 +325,7 @@ public class ClientHandler extends Thread{
 
     private void get_channels(){
         try {
-            ResultSet rs = SQLManager.execute_query("SELECT uic.channel_id FROM Users u JOIN Users_in_channel uic ON u.user_id = uic.user_id WHERE u.username = " + username, false);
+            ResultSet rs = SQLManager.execute_query("SELECT uic.channel_id FROM Users u JOIN Users_in_channel uic ON u.user_id = uic.user_id WHERE u.username = '" + username + "'", false);
             if (rs.next()){ 
                 //if table not empty loop through all channels and send them to client
                 do {
@@ -330,10 +351,12 @@ public class ClientHandler extends Thread{
 
     private void get_channel_data(int channel_id){
         try {
+            System.out.println("Retrieving channel data for channel: " + channel_id);
             ResultSet rs = SQLManager.execute_query("SELECT name FROM Channels WHERE channel_id = " + channel_id, false);
             if (rs.next()){
                 //channel exists
-                server_out.write(EncryptionManager.encrypt_message(rs.getNString(1), client_public_key));
+                System.out.println(rs.getString(1));
+                server_out.write(EncryptionManager.encrypt_message(rs.getString(1), client_public_key));
                 server_out.write('\n');
                 server_out.flush();
 
@@ -341,7 +364,8 @@ public class ClientHandler extends Thread{
                 rs.next(); //Get to the first row, should always work as channel exists
                 //Return all users to client
                 do {
-                    server_out.write(EncryptionManager.encrypt_message(rs.getNString(1), client_public_key));
+                    System.out.println(rs.getString(1));
+                    server_out.write(EncryptionManager.encrypt_message(rs.getString(1), client_public_key));
                     server_out.write('\n');
                     server_out.flush();
                 } while (rs.next());
@@ -371,8 +395,35 @@ public class ClientHandler extends Thread{
         return null;
     }
 
-    private boolean put_message(int channel_id, String message){
-        return false;
+    private void put_message(int channel_id, String message){
+        try {
+            //Retrieve highest message_id
+            ResultSet rs = SQLManager.execute_query("SELECT message_id FROM Messages ORDER BY message_id DESC", false);
+            int msg_id;
+            System.out.println("Attempting put msg");
+            if (!rs.next()){
+                //No messages exist
+                msg_id = 0;
+            } else {
+                msg_id = rs.getInt(1) + 1;
+            }
+            LocalDateTime now = LocalDateTime.now();
+            String formatted = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            SQLManager.execute_query("INSERT INTO Messages (message_id, channel_id, user_id, date, message) VALUES (" + msg_id + ", " + channel_id + ", " + user_id + ", '" + formatted + "', '" + message + "')", true);
+            server_out.write(EncryptionManager.encrypt_message("PUT OK", client_public_key));
+            server_out.write('\n');
+            server_out.flush();
+        } catch (Exception e){
+            try {
+                server_out.write(EncryptionManager.encrypt_message("PUT BAD", client_public_key));
+                server_out.write('\n');
+                server_out.flush();
+            } catch (Exception ex){
+                e.printStackTrace();
+                kill_self();
+            }
+        }
+        
     }
 
     private boolean join_channel(int channel_id){
@@ -381,10 +432,10 @@ public class ClientHandler extends Thread{
             if (rs.next()){
                 //Channel exists
                 //Make sure user is not already in the channel
-                rs = SQLManager.execute_query("SELECT user_id FROM Users_in_channels WHERE user_id = " + user_id, false);
+                rs = SQLManager.execute_query("SELECT user_id FROM Users_in_channel WHERE user_id = " + user_id  + " AND channel_id = " + channel_id, false);
                 if (!rs.next()){
                     //User not in channel
-                    SQLManager.execute_query("INSERT INTO Users_in_channels (user_id, channel_id) VALUES (" + user_id + ", " + channel_id + ")", true);
+                    SQLManager.execute_query("INSERT INTO Users_in_channel (user_id, channel_id) VALUES (" + user_id + ", " + channel_id + ")", true);
                     server_out.write(EncryptionManager.encrypt_message("JOIN OK", client_public_key));
                     server_out.write('\n');
                     server_out.flush();
@@ -416,10 +467,10 @@ public class ClientHandler extends Thread{
             if (rs.next()){
                 //Channel exists
                 //Check if user in channel
-                rs = SQLManager.execute_query("SELECT channel_id FROM channels WHERE channel_id = " + channel_id + " AND user_id = " + user_id, false);
+                rs = SQLManager.execute_query("SELECT channel_id FROM Users_in_channel WHERE channel_id = " + channel_id + " AND user_id = " + user_id, false);
                 if (rs.next()){
                     //User in channel
-                    SQLManager.execute_query("DELETE FROM Users_in_channels WHERE user_id = " + user_id + " AND channel_id = " + channel_id, true);
+                    SQLManager.execute_query("DELETE FROM Users_in_channel WHERE user_id = " + user_id + " AND channel_id = " + channel_id, true);
                     server_out.write(EncryptionManager.encrypt_message("LEAVE OK", client_public_key));
                     server_out.write('\n');
                     server_out.flush();
@@ -442,6 +493,7 @@ public class ClientHandler extends Thread{
     }
 
     private int create_channel(String channel_name){       
+        System.out.println("Creating a channel requested");
         try {
             //Get a new channel_id
             ResultSet rs = SQLManager.execute_query("SELECT channel_id FROM channels ORDER BY channel_id DESC", false);
@@ -454,10 +506,10 @@ public class ClientHandler extends Thread{
                 channel_id = 0;
             }
             //Add channel to channels
-            SQLManager.execute_query("INSERT INTO channels (channel_id, name) VALUES (" + channel_id + ", " + channel_name + ")", true);
+            SQLManager.execute_query("INSERT INTO channels (channel_id, name) VALUES (" + channel_id + ", '" + channel_name + "')", true);
             
             //Add user to channel
-            SQLManager.execute_query("INSERT INTO Users_in_channels (user_id, channel_id) VALUES (" + user_id + ", " + channel_id + ")", true);
+            SQLManager.execute_query("INSERT INTO Users_in_channel (user_id, channel_id) VALUES (" + user_id + ", " + channel_id + ")", true);
             //Let user know channel has been made
             server_out.write(EncryptionManager.encrypt_message("MAKE " + channel_id, client_public_key));
             server_out.write('\n');

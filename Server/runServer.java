@@ -6,9 +6,11 @@ public class runServer{
         Server s = new Server();
         s.start();
         Scanner scanner = new Scanner(System.in);
-        if (scanner.nextLine().equals("q")){
-            s.stop_server();
+        System.out.println("Type q to close server");
+        while (!scanner.nextLine().equals("q")){
+        
         }
+        s.stop_server();
     }
 
 }

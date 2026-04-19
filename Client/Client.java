@@ -53,7 +53,11 @@ public class Client{
         client_out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         
         //Server Handshake
-        client_out.write("HELO " + Base64.getEncoder().encodeToString(keys.getPublic().getEncoded()) + "\n");//Encode the public key into bytes
+        System.out.println("Attempting to write hello");
+        String to_send = "HELO " + Base64.getEncoder().encodeToString(keys.getPublic().getEncoded());
+        System.out.println(to_send);
+        client_out.write(to_send + "\n");//Encode the public key into bytes
+        
         client_out.flush();
         String[] msg = client_in.readLine().split(" ");
         if (msg[0].equals("HELO") && msg.length == 2){
@@ -71,30 +75,31 @@ public class Client{
         }
     }
     
-    public Integer[] getChannel_ids(){
+    public Integer[] get_channel_ids(){
         //Returns all channel ids the client stores
         Set<Integer> ids = channels.keySet();
         return ids.toArray(new Integer[ids.size()]);
     }
 
-    public String getChannelName(int channel_id){
+    public String get_channel_name(int channel_id){
         //gui function call, returns the name of the channel with the channel_id
         return channels.get(channel_id).get_name();
     }
 
-    public Message[] getMessages(int channel_id){
+    public Message[] get_messages(int channel_id){
         return channels.get(channel_id).get_messages();
     }
 
     public void request_messages(int channel_id) throws Exception{
         client_out.write(EncryptionManager.encrypt_message("GET MSG " + channel_id, server_public_key));
         client_out.write('\n');
-
+        
+        
         String msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
         //TOFINISH
     }
 
-    private void request_channels() throws Exception{
+    public void request_channels() throws Exception{
         String to_send = "GET CHANNELS";
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
         client_out.write("\n");
@@ -110,7 +115,7 @@ public class Client{
 
         //Request the data regarding each channel
         for (int i = 0; i < channel_ids.size(); i++){
-            client_out.write(EncryptionManager.encrypt_message("GET CHANNEL_DATA" + channel_ids.get(i), server_public_key));
+            client_out.write(EncryptionManager.encrypt_message("GET CHANNEL_DATA " + channel_ids.get(i), server_public_key));
             client_out.write("\n");
             client_out.flush();
 
@@ -164,7 +169,6 @@ public class Client{
             if (msg[1].equals("OK")){
                 //Authentication succeeded
                 this.username = username;
-                request_channels();
                 return true;
             } else {
                 //Authentication failed
@@ -199,7 +203,7 @@ public class Client{
             //Server sent correct response
             if (in[1].equals("OK")){
                 //Add the message to the channel data
-                channels.get(channel_id).addMessage(new Message(message, username, LocalDate.now(), LocalTime.now()));
+                channels.get(channel_id).addMessage(new Message(message, username, LocalDateTime.now()));
                 return true;
             } else {
                 return false;
@@ -212,12 +216,13 @@ public class Client{
     //GUI FUNCTION CALL
     public int create_channel(String channel_name) throws Exception{
         //Returns the channel_id, returns -1 if creating the group failed
-        String to_send = "MAKE CHANNEL " + channel_name;
+        String to_send = "MAKE " + channel_name;
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
         client_out.write('\n');
         client_out.flush();
 
-        String[] msg = EncryptionManager.decrypt_message(to_send, client_private_key).split(" ");
+        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
+        System.out.println(msg[0] + msg[1]);
         if (msg[0].equals("MAKE") && msg.length == 2){
             //Server sent back correct message
             if (Integer.parseInt(msg[1]) != -1){
