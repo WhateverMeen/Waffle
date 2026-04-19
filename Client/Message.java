@@ -3,20 +3,16 @@ import java.time.LocalDateTime;
 public class Message{
     private String message;
     private String username;
-    private LocalDateTime date; 
+    private LocalDateTime datetime; 
 
-    public Message(String message, String username, LocalDateTime date){
+    public Message(String message, String username, LocalDateTime datetime){
         this.message = message;
         this.username = username;
-        this.date = date;
+        this.datetime = datetime;
     }
 
-    public LocalTime get_time(){
-        return time;
-    }
-
-    public LocalDate get_date(){
-        return date;
+    public LocalDateTime get_datetime(){
+        return datetime;
     }
 
     public String get_message(){

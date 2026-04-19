@@ -7,8 +7,8 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Set;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import java.security.KeyPair;
 import java.security.PublicKey;
@@ -95,24 +95,38 @@ public class Client{
         client_out.write('\n');
         
         
-        String msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
-        //TOFINISH
+        String in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+        while (!in.equals("NONE") && !in.equals("LSDONE")){
+            int id = Integer.parseInt(in);
+            in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+            String username = in;
+            in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+            LocalDateTime datetime = LocalDateTime.parse(in, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            //Iterate over all message lines until message done
+            String message = "";
+            while (!((in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key)).equals("MSDONE"))){
+                message += in;
+            }
+            channels.get(channel_id).addMessage(id, new Message(message, username, datetime));
+        }
     }
 
     public void request_channels() throws Exception{
+        
         String to_send = "GET CHANNELS";
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
         client_out.write("\n");
         client_out.flush();
 
-        String in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
         ArrayList<Integer> channel_ids = new ArrayList<Integer>();
-        //Iterate over all returns
-        while (!in.equals("LSDONE") && !in.equals("NONE")){
+        String in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+        while (!in.equals("NONE") && !in.equals("LSDONE")){
+            System.out.println(in);
             channel_ids.add(Integer.parseInt(in));
             in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
-        }
 
+        }
+        System.out.println("MSDONE read");
         //Request the data regarding each channel
         for (int i = 0; i < channel_ids.size(); i++){
             client_out.write(EncryptionManager.encrypt_message("GET CHANNEL_DATA " + channel_ids.get(i), server_public_key));
@@ -133,6 +147,7 @@ public class Client{
             
             channels.put(channel_ids.get(i), new ChannelContainer(channel_name, users.toArray(new String[users.size()])));
         }
+        System.out.println("Request channels finished");
     }
     
     //GUI CALL FUNCTION
@@ -186,13 +201,13 @@ public class Client{
         client_out.write(EncryptionManager.encrypt_message("PUT " + channel_id, server_public_key));
         client_out.write("\n");
         client_out.flush();
-
+        System.out.println("Writing message lines");
         for (int i = 0; i < msg_lines.length; i++){
             client_out.write(EncryptionManager.encrypt_message(msg_lines[i], server_public_key));
             client_out.write("\n");
             client_out.flush();
         }
-
+        System.out.println("Writing MSDONE");
         client_out.write(EncryptionManager.encrypt_message("MSDONE", server_public_key));
         client_out.write("\n");
         client_out.flush();
@@ -201,9 +216,9 @@ public class Client{
         String[] in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
         if (in[0].equals("PUT") && in.length == 2){
             //Server sent correct response
-            if (in[1].equals("OK")){
+            if (!(in[1].equals("-1"))){
                 //Add the message to the channel data
-                channels.get(channel_id).addMessage(new Message(message, username, LocalDateTime.now()));
+                channels.get(channel_id).addMessage(Integer.parseInt(in[1]), new Message(message, username, LocalDateTime.now()));
                 return true;
             } else {
                 return false;

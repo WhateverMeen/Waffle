@@ -9,6 +9,7 @@ import java.security.PrivateKey;
 import java.util.Base64;
 
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 
 public class ClientHandler extends Thread{
     private Server mainServer;
@@ -163,10 +164,8 @@ public class ClientHandler extends Thread{
                         String temp;
                         String userMessage = "";
                         while (!(temp = EncryptionManager.decrypt_message(server_in.readLine(), server_private_key)).equals("MSDONE")){
-                            System.out.println(temp);
                             userMessage += temp + '\n';
                         }
-                        System.out.println(temp);
                         userMessage.substring(0, userMessage.length() - 1); //Remove the last \n
                         put_message(Integer.parseInt(command[1]), userMessage);
                     } else {
@@ -250,7 +249,6 @@ public class ClientHandler extends Thread{
                     //Set clients status to authorised
                     authorised = true;
                     this.username = username;
-                    System.out.println("User_id of client: " + user_id);
                     //Let client know authentication succeded
                     server_out.write(EncryptionManager.encrypt_message("AUTH OK", client_public_key));
                     server_out.write('\n');
@@ -259,7 +257,7 @@ public class ClientHandler extends Thread{
                 } else {
                     server_out.write(EncryptionManager.encrypt_message("AUTH BAD", client_public_key));
                     server_out.write('\n');
-                    server_out.flush();               
+                    server_out.flush();
                 }
             } else {
                 //No user with such username exists
@@ -274,7 +272,6 @@ public class ClientHandler extends Thread{
     }
 
     private void register_user(String username, String password){
-        System.out.println("Attempting to register user");
         try {
             ResultSet rs = SQLManager.execute_query("SELECT username FROM users", false);
             if (rs != null){
@@ -351,11 +348,9 @@ public class ClientHandler extends Thread{
 
     private void get_channel_data(int channel_id){
         try {
-            System.out.println("Retrieving channel data for channel: " + channel_id);
             ResultSet rs = SQLManager.execute_query("SELECT name FROM Channels WHERE channel_id = " + channel_id, false);
             if (rs.next()){
                 //channel exists
-                System.out.println(rs.getString(1));
                 server_out.write(EncryptionManager.encrypt_message(rs.getString(1), client_public_key));
                 server_out.write('\n');
                 server_out.flush();
@@ -364,7 +359,6 @@ public class ClientHandler extends Thread{
                 rs.next(); //Get to the first row, should always work as channel exists
                 //Return all users to client
                 do {
-                    System.out.println(rs.getString(1));
                     server_out.write(EncryptionManager.encrypt_message(rs.getString(1), client_public_key));
                     server_out.write('\n');
                     server_out.flush();
@@ -391,8 +385,64 @@ public class ClientHandler extends Thread{
     }
     */
 
-    private String[] get_messages(int channel_id){
-        return null;
+    private void get_messages(int channel_id){
+        //Used to retrieve messages and send them to the client
+        //the messages are sent by sending data in the following order
+        //MESSAGE_ID
+        //USERNAME
+        //DATETIME
+        //MESSAGE LINES
+        //MSDONE
+        //repeat
+        //LSDONE
+        //
+        //Message id is sent to make ignoring duplicates easier
+        try{
+            //Get sender, date and message contents of all messages
+            ResultSet rs = SQLManager.execute_query("SELECT message_id, username, date, message FROM Messages INNER JOIN Users ON Messages.user_id = Users.user_id", false);
+            if (rs.next()){
+                //There are messages
+                do {
+                    server_out.write(EncryptionManager.encrypt_message(String.valueOf(rs.getInt(1)), client_public_key));
+                    server_out.write('\n');
+                    server_out.flush();
+
+                    server_out.write(EncryptionManager.encrypt_message(rs.getString(2), client_public_key));
+                    server_out.write('\n');
+                    server_out.flush();
+                    //Get datetime to a string
+                    Timestamp timestamp = rs.getTimestamp(3);
+                    LocalDateTime datetime = timestamp.toLocalDateTime();
+                    String datetime_to_send = datetime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                    server_out.write(EncryptionManager.encrypt_message(datetime_to_send, client_public_key));
+                    server_out.write('\n');
+                    server_out.flush();
+                    //Split message into lines
+                    String[] message_lines = rs.getString(4).split("\n");
+                    //Send each message line
+                    for (String line : message_lines){
+                        server_out.write(EncryptionManager.encrypt_message(line, client_public_key));
+                        server_out.write('\n');
+                        server_out.flush();
+                    }
+                    server_out.write(EncryptionManager.encrypt_message("MSDONE", client_public_key));
+                    server_out.write('\n');
+                    server_out.flush();
+                } while (rs.next());
+                server_out.write(EncryptionManager.encrypt_message("LSDONE", client_public_key));
+                server_out.write('\n');
+                server_out.flush();
+
+            } else {
+                server_out.write(EncryptionManager.encrypt_message("NONE", client_public_key));
+                server_out.write('\n');
+                server_out.flush();
+            }
+
+        } catch (Exception e){
+            e.printStackTrace();
+            kill_self();
+        }
     }
 
     private void put_message(int channel_id, String message){
@@ -400,7 +450,6 @@ public class ClientHandler extends Thread{
             //Retrieve highest message_id
             ResultSet rs = SQLManager.execute_query("SELECT message_id FROM Messages ORDER BY message_id DESC", false);
             int msg_id;
-            System.out.println("Attempting put msg");
             if (!rs.next()){
                 //No messages exist
                 msg_id = 0;
@@ -410,16 +459,16 @@ public class ClientHandler extends Thread{
             LocalDateTime now = LocalDateTime.now();
             String formatted = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             SQLManager.execute_query("INSERT INTO Messages (message_id, channel_id, user_id, date, message) VALUES (" + msg_id + ", " + channel_id + ", " + user_id + ", '" + formatted + "', '" + message + "')", true);
-            server_out.write(EncryptionManager.encrypt_message("PUT OK", client_public_key));
+            server_out.write(EncryptionManager.encrypt_message("PUT " + String.valueOf(msg_id), client_public_key));
             server_out.write('\n');
             server_out.flush();
         } catch (Exception e){
             try {
-                server_out.write(EncryptionManager.encrypt_message("PUT BAD", client_public_key));
+                server_out.write(EncryptionManager.encrypt_message("PUT -1", client_public_key));
                 server_out.write('\n');
                 server_out.flush();
             } catch (Exception ex){
-                e.printStackTrace();
+                ex.printStackTrace();
                 kill_self();
             }
         }
@@ -493,7 +542,6 @@ public class ClientHandler extends Thread{
     }
 
     private int create_channel(String channel_name){       
-        System.out.println("Creating a channel requested");
         try {
             //Get a new channel_id
             ResultSet rs = SQLManager.execute_query("SELECT channel_id FROM channels ORDER BY channel_id DESC", false);
