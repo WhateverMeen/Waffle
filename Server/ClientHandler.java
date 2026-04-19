@@ -127,12 +127,15 @@ public class ClientHandler extends Thread{
                     server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
                 }
             } else if (command[0].equals("GET")){
+                System.out.println("Reaced checkpoint -1");
                 //User wants to request data
                 //Make sure the user has logged in
                 if (authorised){
                     if (command[1].equals("MSG")){
+                        System.out.println("Reached checkpoint 0");
                         //Retrieve messages for client
                         if (command.length == 3){
+                            System.out.println("Reached checkpoint 1");
                             get_messages(Integer.parseInt(command[2]));
                         } else {
                             server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
@@ -253,6 +256,7 @@ public class ClientHandler extends Thread{
                     server_out.write(EncryptionManager.encrypt_message("AUTH OK", client_public_key));
                     server_out.write('\n');
                     server_out.flush();
+                    user_id = rs.getInt(1);
                     mainServer.authorise_client(user_id, unauthorised_id);
                 } else {
                     server_out.write(EncryptionManager.encrypt_message("AUTH BAD", client_public_key));
@@ -386,6 +390,7 @@ public class ClientHandler extends Thread{
     */
 
     private void get_messages(int channel_id){
+        System.out.println("Getting messages");
         //Used to retrieve messages and send them to the client
         //the messages are sent by sending data in the following order
         //MESSAGE_ID
@@ -399,7 +404,7 @@ public class ClientHandler extends Thread{
         //Message id is sent to make ignoring duplicates easier
         try{
             //Get sender, date and message contents of all messages
-            ResultSet rs = SQLManager.execute_query("SELECT message_id, username, date, message FROM Messages INNER JOIN Users ON Messages.user_id = Users.user_id", false);
+            ResultSet rs = SQLManager.execute_query("SELECT message_id, username, date, message FROM Messages INNER JOIN Users ON Messages.user_id = Users.user_id WHERE channel_id = " + channel_id, false);
             if (rs.next()){
                 //There are messages
                 do {
@@ -432,7 +437,7 @@ public class ClientHandler extends Thread{
                 server_out.write(EncryptionManager.encrypt_message("LSDONE", client_public_key));
                 server_out.write('\n');
                 server_out.flush();
-
+                System.out.println("Finished sending messages");
             } else {
                 server_out.write(EncryptionManager.encrypt_message("NONE", client_public_key));
                 server_out.write('\n');

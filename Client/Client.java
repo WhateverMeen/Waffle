@@ -91,23 +91,33 @@ public class Client{
     }
 
     public void request_messages(int channel_id) throws Exception{
+        System.out.println("Requesting messages");
         client_out.write(EncryptionManager.encrypt_message("GET MSG " + channel_id, server_public_key));
         client_out.write('\n');
-        
+        client_out.flush();
+
+        System.out.println("Sent request for messages");
         
         String in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+        System.out.println("First line received: " + in);
         while (!in.equals("NONE") && !in.equals("LSDONE")){
+            System.out.println("Reading message id: " + in);
             int id = Integer.parseInt(in);
             in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+            System.out.println("Username: " + in);
             String username = in;
             in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+            System.out.println("Datetime" + in);
             LocalDateTime datetime = LocalDateTime.parse(in, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             //Iterate over all message lines until message done
             String message = "";
             while (!((in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key)).equals("MSDONE"))){
                 message += in;
+                System.out.println("Message line: " + in);
             }
+            System.out.println("Got MSDONE, reading next...");
             channels.get(channel_id).addMessage(id, new Message(message, username, datetime));
+            in = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
         }
     }
 
