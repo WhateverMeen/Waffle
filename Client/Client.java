@@ -14,6 +14,8 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.PrivateKey;
 
+import java.awt.image.BufferedImage;
+
 public class Client{
     private final String SERVER_HOST = "localhost";
     private final int SERVER_PORT = 4567;
@@ -75,6 +77,13 @@ public class Client{
         }
     }
     
+    public HashMap<Integer, BufferedImage> get_video_frames(){
+        //Gets frames of each incoming webcam feed
+        return null;
+    }
+
+    public
+
     public Integer[] get_channel_ids(){
         //Returns all channel ids the client stores
         Set<Integer> ids = channels.keySet();
