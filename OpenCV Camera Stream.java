@@ -1,3 +1,12 @@
+// Try to open with Windows Open CV -> to figure out the problem;
+
+// Need the file with all yhe required libraries ; 
+
+// See the documentation Open CV for Java !!! ; 
+
+// After all that connect the  GUI ASAP !!!
+
+
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.videoio.VideoCapture;
