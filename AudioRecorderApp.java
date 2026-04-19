@@ -39,10 +39,10 @@ public class AudioRecorderApp {
 
     private AudioFormat getFormat() {
         return new AudioFormat(
-            16000, 
-            16, 
-            1, 
-            true, 
+            16000, // Sample rate
+            16, // Sample Size (bits)
+            1, // Channels
+            true, Signed 
             true
         );
     }
