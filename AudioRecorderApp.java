@@ -1,34 +1,37 @@
 import javax.sound.sampled.*;
 import javax.swing.*;
-import java.awt.*;
-import java.io.*;
 
 public class AudioRecorderApp {
 
-    private TargetDataLine line;
-    private File audioFile = new File("recording.wav");
+    private TargetDataLine microphone;
+    private volatile boolean isRunning = false;
+    private volatile boolean isMuted = false;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new AudioRecorderApp().createUI());
     }
 
     private void createUI() {
-        JFrame frame = new JFrame("Audio Recorder");
+        JFrame frame = new JFrame("Live Audio");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(300, 150);
+        frame.setSize(300, 120);
 
-        JButton recordBtn = new JButton("Record");
+        JButton startBtn = new JButton("Start");
         JButton stopBtn = new JButton("Stop");
-        JButton playBtn = new JButton("Play");
+        JToggleButton muteBtn = new JToggleButton("Mute");
 
-        recordBtn.addActionListener(e -> startRecording());
-        stopBtn.addActionListener(e -> stopRecording());
-        playBtn.addActionListener(e -> playAudio());
+        startBtn.addActionListener(e -> start());
+        stopBtn.addActionListener(e -> stop());
+
+        muteBtn.addActionListener(e -> {
+            isMuted = muteBtn.isSelected();
+            muteBtn.setText(isMuted ? "Unmute" : "Mute");
+        });
 
         JPanel panel = new JPanel();
-        panel.add(recordBtn);
+        panel.add(startBtn);
         panel.add(stopBtn);
-        panel.add(playBtn);
+        panel.add(muteBtn);
 
         frame.add(panel);
         frame.setVisible(true);
@@ -36,64 +39,53 @@ public class AudioRecorderApp {
 
     private AudioFormat getFormat() {
         return new AudioFormat(
-                16000, // sample rate
-                16,    // sample size
-                1,     // channels
-                true,  // signed
-                true   // big endian
+            16000, 
+            16, 
+            1, 
+            true, 
+            true
         );
     }
 
-    private void startRecording() {
-        try {
-            AudioFormat format = getFormat();
-            DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+    private void start() {
+        isRunning = true;
 
-            if (!AudioSystem.isLineSupported(info)) {
-                System.out.println("Line not supported");
-                return;
-            }
+        new Thread(() -> {
+            try {
+                AudioFormat format = getFormat();
+                DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 
-            line = (TargetDataLine) AudioSystem.getLine(info);
-            line.open(format);
-            line.start();
+                microphone = (TargetDataLine) AudioSystem.getLine(info);
+                microphone.open(format);
+                microphone.start();
 
-            System.out.println("Recording...");
+                byte[] buffer = new byte[1024];
 
-            Thread thread = new Thread(() -> {
-                try (AudioInputStream ais = new AudioInputStream(line)) {
-                    AudioSystem.write(ais, AudioFileFormat.Type.WAVE, audioFile);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
+                while (isRunning) {
+                    int bytesRead = microphone.read(buffer, 0, buffer.length);
+
+                    if (!isMuted) {
+                        processAudio(buffer, bytesRead); 
+                    }
                 }
-            });
 
-            thread.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
 
-        } catch (LineUnavailableException ex) {
-            ex.printStackTrace();
+    private void stop() {
+        isRunning = false;
+
+        if (microphone != null) {
+            microphone.stop();
+            microphone.close();
         }
     }
 
-    private void stopRecording() {
-        if (line != null) {
-            line.stop();
-            line.close();
-            System.out.println("Recording stopped");
-        }
-    }
 
-    private void playAudio() {
-        try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile)) {
-
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioStream);
-            clip.start();
-
-            System.out.println("Playing audio...");
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+    private void processAudio(byte[] data, int length) {
+        // send audio over network
     }
 }
