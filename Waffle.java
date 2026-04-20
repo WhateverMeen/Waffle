@@ -236,9 +236,9 @@ public class Waffle {
                     chats.revalidate();
 
                     writeText.setText("");
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+                } 
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         });
 
@@ -293,8 +293,8 @@ public class Waffle {
         Color textColour;
         if (sentBy) {
             colour = new Color(53,76,124);
-            textColour = new Color (234,235,254);}
-        else{
+            textColour = new Color (234,235,254);
+        } else {
             colour = new Color	(176,184,206);
             textColour = new Color (2,41,84);
         }
