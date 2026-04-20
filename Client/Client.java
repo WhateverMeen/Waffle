@@ -260,9 +260,6 @@ public class Client{
         return false;
     }
 
-    public String get_username() {
-        return username;
-    }
     
     //GUI CALL FUNCTION
     public boolean send_message(String message, int channel_id) throws Exception{
