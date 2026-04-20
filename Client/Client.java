@@ -17,9 +17,11 @@ import java.security.PrivateKey;
 import java.awt.image.BufferedImage;
 
 public class Client{
-    private final String SERVER_HOST = "172.20.10.2";
+    private final String SERVER_HOST = "localhost";
     private final int SERVER_PORT = 4567;
-
+    
+    private boolean call_incoming;
+    private boolean in_call;
 
     //State variables
     private String username;
@@ -39,8 +41,8 @@ public class Client{
     public Client() throws Exception{
         //Initialise state variables
         channels = new HashMap<Integer, ChannelContainer>();
-        microphone_enabled = false;
-        camera_enabled = false;
+        microphone_enabled = true;
+        camera_enabled = true;
 
         //Create encryption keys
         KeyPair keys = EncryptionManager.get_keys();
@@ -66,7 +68,7 @@ public class Client{
             server_public_key = EncryptionManager.public_key_from_string(msg[1]); //Extract servers public key from the message received
         }
     }
-    
+
     public void quit(){
         try{
             socket.close();
@@ -77,11 +79,17 @@ public class Client{
         }
     }
     
-    public HashMap<Integer, BufferedImage> get_video_frames(){
-        //Gets frames of each incoming webcam feed
-        return null;
+    public boolean get_call_incoming(){
+        return call_incoming;
+    }
+    
+    public boolean get_in_call(){
+        return in_call;
     }
 
+    public String[] get_users_in_call(){
+
+    }
 
     public Integer[] get_channel_ids(){
         //Returns all channel ids the client stores
@@ -96,6 +104,22 @@ public class Client{
 
     public Message[] get_messages(int channel_id){
         return channels.get(channel_id).get_messages();
+    }
+
+    public void start_call(int channel_id){
+
+    }
+
+    public void join_call(int channel_id){
+
+    }
+
+    public void leave_call(int channel_id){
+
+    }
+
+    public String get_username() {
+        return this.username;
     }
 
     public void request_messages(int channel_id) throws Exception{
@@ -130,7 +154,6 @@ public class Client{
     }
 
     public void request_channels() throws Exception{
-        
         String to_send = "GET CHANNELS";
         client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
         client_out.write("\n");
@@ -326,25 +349,10 @@ public class Client{
         }
     }
 
-    //  SORT OUT LATER ; 
-    //public boolean start_call(int channel_id);
-
-    // REFERENCE 
-    //public void leave_call();
-    
-    //public void join_call(channel_id);
-
-
     public void unmute_microphone(){
         microphone_enabled = true;
     }
     public void mute_microphone(){
         microphone_enabled = false;
-    }
-    public void enable_camera(){
-        camera_enabled = true;
-    }
-    public void disable_camera(){
-        camera_enabled = false;
     }
 }
