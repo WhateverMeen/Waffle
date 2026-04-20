@@ -158,7 +158,7 @@ public class Client{
 
     public void request_messages(int channel_id) throws Exception {
         System.out.println("Requesting messages");
-        client_out.write(EncryptionManager.encrypt_message("Get MSSG " + channel_id, server_public_key));
+        client_out.write(EncryptionManager.encrypt_message("Get MSG " + channel_id, server_public_key));
         client_out.write('\n');
         client_out.flush();
 
