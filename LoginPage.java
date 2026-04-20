@@ -79,7 +79,7 @@ public class LoginPage extends JFrame {
         login_button.addActionListener(this::login);
 
         register_button.addActionListener(e -> {
-            new SignUpPage();
+            new SignUpPage(client);
             dispose();
         });
 
