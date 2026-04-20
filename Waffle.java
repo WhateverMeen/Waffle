@@ -121,7 +121,7 @@ public class Waffle {
                     if (messages != null) {
                         for (Message m : messages) {
                             boolean sentBy = m.get_username().equals(client.get_username());
-                            chats.add(sendMessage(m.get_content(), sentBy));
+                            chats.add(sendMessage(m.get_message(), sentBy));
                         }
                     }
                     chats.revalidate();
