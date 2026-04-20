@@ -38,6 +38,13 @@ public class LoginPage extends JFrame {
         add(register_button);
         add(statusLabel);
 
+        try {
+            client = new Client();
+        } catch (Exception e) {
+            statusLabel.setText("Failed to connect to server.");
+            e.printStackTrace();
+        }
+        
         login_button.addActionListener((ActionEvent e) -> {
             try {
                 handleLogin();
