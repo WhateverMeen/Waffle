@@ -183,7 +183,6 @@ public class Waffle {
         innerPanel.add(scroll, BorderLayout.CENTER);
         outerPanel.add(innerPanel, BorderLayout.CENTER);
 
-        // --- Event Listeners ---
 
         sendButton.addActionListener(e -> {
             try {
@@ -239,7 +238,7 @@ public class Waffle {
             }
             String newName = JOptionPane.showInputDialog(frame, "Enter new chat name:");
             if (newName != null && !newName.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(frame, "Rename function coming soon.", "Work in Progress", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(frame, "Rename feature coming soon.", "Work in Progress", JOptionPane.INFORMATION_MESSAGE);
             }
         });
 
@@ -292,7 +291,7 @@ public class Waffle {
             }
         });
 
-        // Background Timer checking client states
+        // Timer checking client states
         Timer stateTimer = new Timer(2000, e -> {
             if (client.get_call_incoming()) {
                 int cId = client.get_call_channel();
@@ -319,7 +318,6 @@ public class Waffle {
         });
         stateTimer.start();
 
-        // INCREASED the overall window size
         frame.setSize(900, 600); 
         frame.setContentPane(outerPanel);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -368,7 +366,7 @@ public class Waffle {
         if (name != null && !name.trim().isEmpty()) {
             try {
                 int id = client.create_channel(name);
-                if (id != -1) {
+                if (id > 0) {
                     refreshContacts(contactsPanel, chats);
                 } else {
                     JOptionPane.showMessageDialog(frame, "Failed to create channel.", "Error", JOptionPane.ERROR_MESSAGE);
