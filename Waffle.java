@@ -16,10 +16,15 @@ public class Waffle {
     
 
     public static void main(String[] args) {
-        client = new Client();
-        SwingUtilities.invokeLater(() -> {
-            new Waffle().GUI();
-        });
+        try {
+            client = new Client();
+            SwingUtilities.invokeLater(() -> {
+                new Waffle().GUI();
+            });
+        } catch (Exception e) {
+            System.out.println("Could not connect to server");
+            e.printStackTrace();
+        }
     }
 
     void GUI(){
@@ -111,7 +116,7 @@ public class Waffle {
 
 
             contact.addActionListener(e -> {
-                currentChannelID = channelId;
+                currentChannelId = channelId;
 
                 try {
                     client.request_messages(channelId);
