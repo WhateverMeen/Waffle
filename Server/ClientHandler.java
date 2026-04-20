@@ -118,33 +118,76 @@ public class ClientHandler extends Thread{
         return socket.getInetAddress().getHostAddress();
     }
 
+    public String get_username(){
+        return username;
+    }
+
     public void start_call(int channel_id){
-        //Let server know that a user wants to start a call
+        mainServer.start_call(user_id, channel_id); // notify server
     }
 
     public void join_call(int channel_id){
+        CallParticipant[] participants = mainServer.join_call(channel_id, this); // list of call participants
+        try {
+            for (CallParticipant participant : participants){ // for each one
+                server_out.write(EncryptionManager.encrypt_message(participant.get_username() + " " + participant.get_ip(), client_public_key) + '\n'); // send info on server
+                server_out.flush();
+            }
+            server_out.write(EncryptionManager.encrypt_message("LSDONE", client_public_key) + '\n');
+            server_out.flush();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
         //Retrieve data about all current call participants, send them to client and notify server
-        //of client joining
-        //
+        
         //call_notification_out.write(EncryptionManager.encrypt_message("MSG", client_public_key);
         //call_notification_out.write('\n');
         //call_notification_out.flush();
     }
-
+    // command username and ip for join and leave in order command, username, ip. should be returned on notifications. server will send username and ip of person joining or leaving to the client.
     public void leave_call(int channel_id){
+
+        mainServer.leave_call(user_id, channel_id);
+        try {
+            server_out.write(EncryptionManager.encrypt_message("LEAVE OK", client_public_key) + '\n'); // client leaving
+            server_out.flush();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
         //Notify server of client leaving a call
     }
 
     public void notify_on_incoming_call(CallParticipant[] participants){
         //Notify client of incoming call
+        try {
+            call_notifications_out.write(EncryptionManager.encrypt_message("INCOMING", client_public_key) + '\n');
+            call_notifications_out.flush();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
     }
+    
 
     public void notify_on_participant_joining(CallParticipant participant){
         //Notify client of a participant joining
+        try {
+            call_notifications_out.write(EncryptionManager.encrypt_message("JOIN " + participant.get_username() + " " + participant.get_ip(), client_public_key) + '\n'); // info of joining client
+            call_notifications_out.flush();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public void notify_on_participant_leaving(CallParticipant participant){
         //Notify client of a participant leaving
+        try {
+            call_notifications_out.write(EncryptionManager.encrypt_message("LEAVE " + participant.get_username() + " " + participant.get_ip(), client_public_key) + '\n'); // Leaving participant info
+            call_notifications_out.flush();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     private void interpret_command(String[] command){      
@@ -279,7 +322,7 @@ public class ClientHandler extends Thread{
                     server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
                     server_out.flush();
                 }
-            } else if (command[0].equals("CONNECT") {
+            } else if (command[0].equals("CONNECT")) {
                 if (command.length == 2){
                     join_call(command[1]);
                 } else {

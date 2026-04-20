@@ -50,17 +50,52 @@ public class Server extends Thread{
         }
     }
     
-    public boolean start_call(int user_id, int channel_id){
+    public boolean start_call(int user_id, int channel_id){ // to fix
         //If there isnt an ongoing call, add a call to the list with the initial participant being the one with user_id passed
         //Notify all users that are connected to the server about a call
+        if (ongoing_calls.containsKey(channel_id)){ // if ongoing call, returns false
+            return false;
+        }
+        ConcurrentHashMap<Integer, CallParticipant> participants = new ConcurrentHashMap<>(); // create the new call
+        ClientHandler handler = authorised_clients.get(user_id);
+        participants.put(user_id, new CallParticipant(handler.get_ip(), user_id, handler.get_username()));// User_id as first participant
+        ongoing_calls.put(channel_id, participants);
+        CallParticipant[] currentParticipants = get_call_participants(channel_id);
+        for (int id : authorised_clients.keySet()){
+            if (id != user_id){ // not original caller
+                authorised_clients.get(id).notify_on_incoming_call(currentParticipants); // notify connected users
+            }
+        }
+        return true;
     }
 
     public boolean leave_call(int user_id, int channel_id){
         //Remove participant from call, notify all current participants, if none left remove call from calls
+
+        if (!ongoing_calls.containsKey(channel_id)){ // if no call, return false
+            return false;
+        }
+        ClientHandler handler = authorised_clients.get(user_id); // get leaver details for other participants
+        CallParticipant leaving = new CallParticipant(handler.get_ip(), user_id, handler.get_username());
+        ongoing_calls.get(channel_id).remove(user_id);// remove participant
+        if (ongoing_calls.get(channel_id).isEmpty()){ // kill the call if its now empty
+            ongoing_calls.remove(channel_id);
+            return true;
+        }
+
+        for (int id : ongoing_calls.get(channel_id).keySet()){
+            authorised_clients.get(id).notify_on_participant_leaving(leaving); // notify users of leaver
+        }
+        return true;
     }
 
-    public CallParticipant[] get_call_participants(channel_id){
+    public CallParticipant[] get_call_participants(int channel_id){
         //Return a list of all call participants
+
+        if (!ongoing_calls.containsKey(channel_id)){ // if its an empty call then return an empty array
+            return new CallParticipant[0];
+        }
+        return ongoing_calls.get(channel_id).values().toArray(new CallParticipant[ongoing_calls.get(channel_id).values().size()]); // get all call participents and returns them as an array
     }
 
     public void stop_clients(){
