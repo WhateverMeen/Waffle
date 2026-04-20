@@ -118,6 +118,10 @@ public class Client{
 
     }
 
+    public String get_username() {
+        return this.username;
+    }
+
     public void request_messages(int channel_id) throws Exception{
         System.out.println("Requesting messages");
         client_out.write(EncryptionManager.encrypt_message("GET MSG " + channel_id, server_public_key));
