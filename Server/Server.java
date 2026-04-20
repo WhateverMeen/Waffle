@@ -2,7 +2,7 @@ import java.net.*;
 import java.io.*;
 
 import java.util.concurrent.ConcurrentHashMap;
-
+import java.util.concurrent
 public class Server extends Thread{
     private final int PORT_NUMBER = 4567;
 
@@ -10,6 +10,8 @@ public class Server extends Thread{
     //This allows for communication between threads when initiating a p2p call
     ConcurrentHashMap<Integer, ClientHandler> unauthorised_clients; //The key is unqiue id assigned to each client at creation
     ConcurrentHashMap<Integer, ClientHandler> authorised_clients; //The key is user_id of the client
+    ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, CallParticipant> ongoing_calls; //The key is a channel_id and the value is a hashmap mapping user_ids to callParticipants
+
 
     private int unauthorised_count;
     private boolean running;
@@ -22,7 +24,7 @@ public class Server extends Thread{
         authorised_clients = new ConcurrentHashMap<Integer, ClientHandler>();
         unauthorised_count = 0;
     }
-    
+
     public void run(){
         running = true;
         
@@ -48,6 +50,19 @@ public class Server extends Thread{
         }
     }
     
+    public boolean start_call(int user_id, int channel_id){
+        //If there isnt an ongoing call, add a call to the list with the initial participant being the one with user_id passed
+        //Notify all users that are connected to the server about a call
+    }
+
+    public boolean leave_call(int user_id, int channel_id){
+        //Remove participant from call, notify all current participants, if none left remove call from calls
+    }
+
+    public CallParticipant[] get_call_participants(channel_id){
+        //Return a list of all call participants
+    }
+
     public void stop_clients(){
         for (int id : unauthorised_clients.keySet()){
             unauthorised_clients.get(id).kill_self();

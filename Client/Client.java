@@ -17,7 +17,7 @@ import java.security.PrivateKey;
 import java.awt.image.BufferedImage;
 
 public class Client{
-    private final String SERVER_HOST = "localhost";
+    private final String SERVER_HOST = "172.20.10.2";
     private final int SERVER_PORT = 4567;
 
 
@@ -82,7 +82,6 @@ public class Client{
         return null;
     }
 
-    public
 
     public Integer[] get_channel_ids(){
         //Returns all channel ids the client stores

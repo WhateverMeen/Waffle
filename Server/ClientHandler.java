@@ -12,10 +12,13 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 
 public class ClientHandler extends Thread{
+    private static final CALL_PORT = 6767;
+
     private Server mainServer;
     private int unauthorised_id;
 
     private Socket socket;
+    private Socket callSocket;
     private PublicKey server_public_key;
     private PrivateKey server_private_key;
     private PublicKey client_public_key;
@@ -27,6 +30,7 @@ public class ClientHandler extends Thread{
 
     private BufferedReader server_in;
     private BufferedWriter server_out;
+    private BufferedWriter call_notifications_out;
 
     public ClientHandler(Socket client_socket, Server server, int id){
         socket = client_socket;
@@ -75,6 +79,10 @@ public class ClientHandler extends Thread{
                 client_public_key = EncryptionManager.public_key_from_string(msg[1]); 
                 server_out.write("HELO " + Base64.getEncoder().encodeToString(server_public_key.getEncoded()) + "\n");
                 server_out.flush();
+                //Establish connection on callSocket
+                ServerSocket call = new ServerSocket(CALL_PORT);
+                callSocket = call.accept();
+                call_notifications_out = new BufferedWriter(new OutputStreamWriter(callSocket.getOutputStream()));
             } else {
                 //Client sent an incorrect request
                 server_out.write("INVALID REQ\n");
@@ -104,6 +112,39 @@ public class ClientHandler extends Thread{
         } catch (Exception e){
             e.printStackTrace();
         }
+    }
+    
+    public String get_ip(){
+        return socket.getInetAddress().getHostAddress();
+    }
+
+    public void start_call(int channel_id){
+        //Let server know that a user wants to start a call
+    }
+
+    public void join_call(int channel_id){
+        //Retrieve data about all current call participants, send them to client and notify server
+        //of client joining
+        //
+        //call_notification_out.write(EncryptionManager.encrypt_message("MSG", client_public_key);
+        //call_notification_out.write('\n');
+        //call_notification_out.flush();
+    }
+
+    public void leave_call(int channel_id){
+        //Notify server of client leaving a call
+    }
+
+    public void notify_on_incoming_call(CallParticipant[] participants){
+        //Notify client of incoming call
+    }
+
+    public void notify_on_participant_joining(CallParticipant participant){
+        //Notify client of a participant joining
+    }
+
+    public void notify_on_participant_leaving(CallParticipant participant){
+        //Notify client of a participant leaving
     }
 
     private void interpret_command(String[] command){      
@@ -224,17 +265,33 @@ public class ClientHandler extends Thread{
                 //User wants to make a call
                 if (authorised){
                     if (command.length == 2){
-                        //start_call(Integer.parseInt(command[1]));
+                        start_call(command[1]);
                     } else {
                         server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
                     }
                 } else {
                     server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
                 }
-            } else if (command[0].equals("END")){
+            } else if (command[0].equals("DISCONNECT"){
+                if (command.length == 2){
+                    leave_call(command[1]);
+                } else {
+                    server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+                    server_out.flush();
+                }
+            } else if (command[0].equals("CONNECT") {
+                if (command.length == 2){
+                    join_call(command[1]);
+                } else {
+                    server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+                    server_out.flush();
+                }
+            }
+            else if (command[0].equals("END")){
                 running = false;
             } else {
                 server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
+                
             }
         } catch (Exception e){
             e.printStackTrace();
@@ -383,12 +440,6 @@ public class ClientHandler extends Thread{
         }
     }
     
-    /*TODO
-    private void start_call(int channel_id){
-
-    }
-    */
-
     private void get_messages(int channel_id){
         System.out.println("Getting messages");
         //Used to retrieve messages and send them to the client
