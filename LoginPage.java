@@ -18,7 +18,21 @@ public class LoginPage extends JFrame {
     private final Color ConCol = new Color(100, 100, 100);
 
     public LoginPage() {
+        try {
+            client = new Client();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to connect to server.");
+            System.exit(1);
+        }
+        initUI();
+    }
 
+    public LoginPage(Client client) {
+        this.client = client;
+        initUI();
+    }
+
+    private void initUI() {
         setTitle("Waffle - Login");
         setSize(350, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -62,25 +76,9 @@ public class LoginPage extends JFrame {
 
         add(panel);
 
-        try {
-            client = new Client();
-        } catch (Exception e) {
-            statusLabel.setText("Failed to connect to server.");
-            e.printStackTrace();
-        }
+        login_button.addActionListener(this::login);
 
-        login_button.addActionListener((ActionEvent e) -> {
-            try {
-                handleLogin();
-            }
-            catch (Exception ex) {
-                statusLabel.setText("Connection error.");
-                ex.printStackTrace();
-            }
-        });
-
-        register_button.addActionListener((ActionEvent e) -> {
-            // Handle registration logic
+        register_button.addActionListener(e -> {
             new SignUpPage();
             dispose();
         });
@@ -88,29 +86,30 @@ public class LoginPage extends JFrame {
         setVisible(true);
     }
 
-    private void handleLogin() throws Exception {
-        String username = username_field.getText();
-        String password = new String(password_field.getPassword());
+    private void login(ActionEvent e) {
+        try {
+            String u = username_field.getText();
+            String p = new String(password_field.getPassword());
 
-        if (client == null) {
-            statusLabel.setText("Not connected to server.");
-            return;
-        }
-            
-        boolean success = client.login(username, password);
+            boolean ok = client.login(u, p);
 
-        if (success) {
-            statusLabel.setText("Login successful!");
-            // Proceed to main application window
-            Waffle waffleApp = new Waffle(client);
-            waffleApp.GUI();
-            this.dispose();
-        } else {
-            statusLabel.setText("Invalid username or password.");
+            if (ok) {
+                statusLabel.setText("Login successful");
+                Waffle waffle = new Waffle(client);
+                waffle.GUI();
+
+                dispose();
+            } else {
+                statusLabel.setText("Invalid login");
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            statusLabel.setText("Error");
         }
     }
 
-    private JLabel styledLabel(String text) {
+        private JLabel styledLabel(String text) {
         JLabel label = new JLabel(text);
         label.setForeground(ButCol);
         label.setAlignmentX(Component.CENTER_ALIGNMENT);
