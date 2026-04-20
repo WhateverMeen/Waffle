@@ -14,6 +14,13 @@ public class Waffle {
     static final Color ConCol = new Color(100,100,100);
     static final Color BotCol = new Color(150,150,150);
     
+    public Waffle(Client authenticatedClient) {
+        client = authenticatedClient;
+    }
+
+    public Waffle() {
+
+    }
 
     public static void main(String[] args) {
         try {
