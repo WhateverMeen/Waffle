@@ -228,47 +228,40 @@ public class Client{
     }
     
     //GUI CALL FUNCTION
-    public boolean register_account(String username, String password) throws Exception{
-        String to_send = "REG " + username + " " + password;
-        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
-        client_out.write('\n');
+    public boolean register_account(String username, String password) throws Exception {
+        String msg = "REG " + username + " " + password;
+
+        client_out.write(EncryptionManager.encrypt_message(msg, server_public_key));
+        client_out.write("\n");
         client_out.flush();
 
-        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
-        if (msg[0].equals("REG") && msg.length == 2){
-            //Server sent back an appropriate response
-            if (msg[1].equals("OK")){
-                return true; //If login okay
-            } else {
-                return false;
-            }
-        } else {
-            return false;
-        }
+        String response = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+        String[] parts = response.split(" ");
+
+        return parts[0].equals("REG") && parts.length == 2 && parts[1].equals("OK");
     }
 
     //GUI CALL FUNCTION
-    public boolean login(String username, String password) throws Exception{
-        //Attempt to log the user in, returns false if it failed, true if successful. It also
-        String to_send = "AUTH " + username + " " + password;
-        client_out.write(EncryptionManager.encrypt_message(to_send, server_public_key));
-        client_out.write('\n');
+    public boolean login(String username, String password) throws Exception {
+        String msg = "AUTH " + username + " " + password;
+
+        client_out.write(EncryptionManager.encrypt_message(msg, server_public_key));
+        client_out.write("\n");
         client_out.flush();
-        
-        String[] msg = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key).split(" ");
-        if (msg[0].equals("AUTH") && msg.length == 2){
-            //Server sent back expected response
-            if (msg[1].equals("OK")){
-                //Authentication succeeded
-                this.username = username;
-                return true;
-            } else {
-                //Authentication failed
-                return false;
-            }
+
+        String response = EncryptionManager.decrypt_message(client_in.readLine(), client_private_key);
+        String[] parts = response.split(" ");
+
+        if (parts[0].equals("AUTH") && parts.length == 2 && parts[1].equals("OK")) {
+            this.username = username;
+            return true;
         }
-        //Server ended up sending an incorrect message thus authentication failed. It should be unreachable
+
         return false;
+    }
+
+    public String get_username() {
+        return username;
     }
     
     //GUI CALL FUNCTION
