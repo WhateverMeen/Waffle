@@ -12,13 +12,13 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 
 public class ClientHandler extends Thread{
-    private static final CALL_PORT = 6767;
+    //private static final CALL_PORT = 6767;
 
     private Server mainServer;
     private int unauthorised_id;
 
     private Socket socket;
-    private Socket callSocket;
+   // private Socket callSocket;
     private PublicKey server_public_key;
     private PrivateKey server_private_key;
     private PublicKey client_public_key;
@@ -30,7 +30,7 @@ public class ClientHandler extends Thread{
 
     private BufferedReader server_in;
     private BufferedWriter server_out;
-    private BufferedWriter call_notifications_out;
+ //   private BufferedWriter call_notifications_out;
 
     public ClientHandler(Socket client_socket, Server server, int id){
         socket = client_socket;
@@ -80,9 +80,9 @@ public class ClientHandler extends Thread{
                 server_out.write("HELO " + Base64.getEncoder().encodeToString(server_public_key.getEncoded()) + "\n");
                 server_out.flush();
                 //Establish connection on callSocket
-                ServerSocket call = new ServerSocket(CALL_PORT);
-                callSocket = call.accept();
-                call_notifications_out = new BufferedWriter(new OutputStreamWriter(callSocket.getOutputStream()));
+               // ServerSocket call = new ServerSocket(CALL_PORT);
+     //           callSocket = call.accept();
+       //         call_notifications_out = new BufferedWriter(new OutputStreamWriter(callSocket.getOutputStream()));
             } else {
                 //Client sent an incorrect request
                 server_out.write("INVALID REQ\n");
@@ -125,9 +125,9 @@ public class ClientHandler extends Thread{
     public void start_call(int channel_id){
         mainServer.start_call(user_id, channel_id); // notify server
     }
-
+    /*
     public void join_call(int channel_id){
-        CallParticipant[] participants = mainServer.join_call(channel_id, this); // list of call participants
+     //   CallParticipant[] participants = mainServer.join_call(channel_id, this); // list of call participants
         try {
             for (CallParticipant participant : participants){ // for each one
                 server_out.write(EncryptionManager.encrypt_message(participant.get_username() + " " + participant.get_ip(), client_public_key) + '\n'); // send info on server
@@ -138,13 +138,12 @@ public class ClientHandler extends Thread{
         } catch (Exception e){
             e.printStackTrace();
         }
-
+    */
         //Retrieve data about all current call participants, send them to client and notify server
         
         //call_notification_out.write(EncryptionManager.encrypt_message("MSG", client_public_key);
         //call_notification_out.write('\n');
         //call_notification_out.flush();
-    }
     // command username and ip for join and leave in order command, username, ip. should be returned on notifications. server will send username and ip of person joining or leaving to the client.
     public void leave_call(int channel_id){
 
@@ -159,11 +158,12 @@ public class ClientHandler extends Thread{
         //Notify server of client leaving a call
     }
 
+    
     public void notify_on_incoming_call(CallParticipant[] participants){
         //Notify client of incoming call
         try {
-            call_notifications_out.write(EncryptionManager.encrypt_message("INCOMING", client_public_key) + '\n');
-            call_notifications_out.flush();
+            //call_notifications_out.write(EncryptionManager.encrypt_message("INCOMING", client_public_key) + '\n');
+            //call_notifications_out.flush();
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -173,8 +173,8 @@ public class ClientHandler extends Thread{
     public void notify_on_participant_joining(CallParticipant participant){
         //Notify client of a participant joining
         try {
-            call_notifications_out.write(EncryptionManager.encrypt_message("JOIN " + participant.get_username() + " " + participant.get_ip(), client_public_key) + '\n'); // info of joining client
-            call_notifications_out.flush();
+            //call_notifications_out.write(EncryptionManager.encrypt_message("JOIN " + participant.get_username() + " " + participant.get_ip(), client_public_key) + '\n'); // info of joining client
+            //call_notifications_out.flush();
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -183,8 +183,8 @@ public class ClientHandler extends Thread{
     public void notify_on_participant_leaving(CallParticipant participant){
         //Notify client of a participant leaving
         try {
-            call_notifications_out.write(EncryptionManager.encrypt_message("LEAVE " + participant.get_username() + " " + participant.get_ip(), client_public_key) + '\n'); // Leaving participant info
-            call_notifications_out.flush();
+            //call_notifications_out.write(EncryptionManager.encrypt_message("LEAVE " + participant.get_username() + " " + participant.get_ip(), client_public_key) + '\n'); // Leaving participant info
+            //call_notifications_out.flush();
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -308,7 +308,7 @@ public class ClientHandler extends Thread{
                 //User wants to make a call
                 if (authorised){
                     if (command.length == 2){
-                        start_call(command[1]);
+                        //start_call(command[1]);
                     } else {
                         server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
                     }
@@ -317,14 +317,14 @@ public class ClientHandler extends Thread{
                 }
             } else if (command[0].equals("DISCONNECT")){
                 if (command.length == 2){
-                    leave_call(command[1]);
+                    //leave_call(command[1]);
                 } else {
                     server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
                     server_out.flush();
                 }
             } else if (command[0].equals("CONNECT")) {
                 if (command.length == 2){
-                    join_call(command[1]);
+                    //join_call(command[1]);
                 } else {
                     server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
                     server_out.flush();

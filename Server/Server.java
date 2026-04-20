@@ -2,7 +2,7 @@ import java.net.*;
 import java.io.*;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent
+
 public class Server extends Thread{
     private final int PORT_NUMBER = 4567;
 
@@ -10,7 +10,7 @@ public class Server extends Thread{
     //This allows for communication between threads when initiating a p2p call
     ConcurrentHashMap<Integer, ClientHandler> unauthorised_clients; //The key is unqiue id assigned to each client at creation
     ConcurrentHashMap<Integer, ClientHandler> authorised_clients; //The key is user_id of the client
-    ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, CallParticipant> ongoing_calls; //The key is a channel_id and the value is a hashmap mapping user_ids to callParticipants
+    ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, CallParticipant>> ongoing_calls; //The key is a channel_id and the value is a hashmap mapping user_ids to callParticipants
 
 
     private int unauthorised_count;

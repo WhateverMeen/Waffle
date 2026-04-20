@@ -37,8 +37,7 @@ public class Client{
     private Socket socket;
     private BufferedReader client_in;
     private BufferedWriter client_out;
-    private CallHandler callHandler;
-
+    
     public Client() throws Exception{
         //Initialise state variables
         channels = new HashMap<Integer, ChannelContainer>();
@@ -70,16 +69,10 @@ public class Client{
             server_public_key = EncryptionManager.public_key_from_string(msg[1]); //Extract servers public key from the message received
         }
 
-        Socket call_socket = new Socket(SERVER_HOST, CALL_NOTIFY_PORT);
-        callHandler = new CallHandler(this, call_socket, server_public_key, client_private_key);
-        callHandler.start();
-    }
+   }
 
     public void quit(){
         try{
-            if (callHandler != null) {
-                callHandler.end();
-            }
             socket.close();
             client_in.close();
             client_out.close();
@@ -153,7 +146,7 @@ public class Client{
             usernames.add(args[0]);
             ips.add(args[1]);
         }
-        callHandler.connect_on_join_call(usernames.toArray(new String[usernames.size()]), ips.toArray(new String[ips.size()]));
+       // callHandler.connect_on_join_call(usernames.toArray(new String[usernames.size()]), ips.toArray(new String[ips.size()]));
         in_call = true;
     }
 
