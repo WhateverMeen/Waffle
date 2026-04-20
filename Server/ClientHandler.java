@@ -40,6 +40,7 @@ public class ClientHandler extends Thread{
     }
 
     public void kill_self(){
+	/*
         if (authorised){
             mainServer.kill_client(user_id, authorised);
         } else {
@@ -50,6 +51,7 @@ public class ClientHandler extends Thread{
         } catch (Exception e){
             System.out.println("Failed to close connection when killing thread");
         }
+	a*/
         running = false;
     }
 
@@ -357,7 +359,7 @@ public class ClientHandler extends Thread{
                     server_out.write('\n');
                     server_out.flush();
                     user_id = rs.getInt(1);
-                    mainServer.authorise_client(user_id, unauthorised_id);
+                    //mainServer.authorise_client(user_id, unauthorised_id);
                 } else {
                     server_out.write(EncryptionManager.encrypt_message("AUTH BAD", client_public_key));
                     server_out.write('\n');

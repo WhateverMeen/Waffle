@@ -295,7 +295,6 @@ public class Client{
             //Server sent correct response
             if (!(in[1].equals("-1"))){
                 //Add the message to the channel data
-                channels.get(channel_id).addMessage(Integer.parseInt(in[1]), new Message(message, username, LocalDateTime.now()));
                 return true;
             } else {
                 return false;

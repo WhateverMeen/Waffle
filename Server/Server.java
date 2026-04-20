@@ -122,13 +122,13 @@ public class Server extends Thread{
         }
         running = false;
     }
-
+   /*
     public void authorise_client(int user_id, int unauthorised_id){
         //Add the client to the authorised_clients and make its id the user_id
         authorised_clients.put(user_id, unauthorised_clients.get(unauthorised_id));
         unauthorised_clients.remove(unauthorised_id);
     }
-
+   */
     public void kill_client(int id, boolean authorised){
         //takes id of client, user_id if true, unauthorised_id otherwise
         if (authorised){
