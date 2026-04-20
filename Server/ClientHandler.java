@@ -315,7 +315,7 @@ public class ClientHandler extends Thread{
                 } else {
                     server_out.write(EncryptionManager.encrypt_message("INVALID REQUST", client_public_key) + '\n');
                 }
-            } else if (command[0].equals("DISCONNECT"){
+            } else if (command[0].equals("DISCONNECT")){
                 if (command.length == 2){
                     leave_call(command[1]);
                 } else {
