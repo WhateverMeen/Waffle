@@ -2,7 +2,8 @@ import java.net.*;
 import java.io.*;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class Server extends Thread{
     private final int PORT_NUMBER = 4567;
 
@@ -10,10 +11,10 @@ public class Server extends Thread{
     //This allows for communication between threads when initiating a p2p call
     ConcurrentHashMap<Integer, ClientHandler> unauthorised_clients; //The key is unqiue id assigned to each client at creation
     ConcurrentHashMap<Integer, ClientHandler> authorised_clients; //The key is user_id of the client
-    ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, CallParticipant> ongoing_calls; //The key is a channel_id and the value is a hashmap mapping user_ids to callParticipants
+    ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, CallParticipant>> ongoing_calls; //The key is a channel_id and the value is a hashmap mapping user_ids to callParticipants
 
 
-    private int unauthorised_count;
+    private AtomicInteger unauthorised_count;
     private boolean running;
     
     ServerSocket serverSocket;
@@ -22,7 +23,7 @@ public class Server extends Thread{
     public Server(){
         unauthorised_clients = new ConcurrentHashMap<Integer, ClientHandler>();
         authorised_clients = new ConcurrentHashMap<Integer, ClientHandler>();
-        unauthorised_count = 0;
+        unauthorised_count = new AtomicInteger(0);
     }
 
     public void run(){
@@ -36,9 +37,9 @@ public class Server extends Thread{
                 //Wait for the client to connect
                 Socket clientSocket = serverSocket.accept();
                 //Add client to unauthorised clients and assign its id and then start the thread
-                unauthorised_clients.put(unauthorised_count, new ClientHandler(clientSocket, this, unauthorised_count));
-                unauthorised_clients.get(unauthorised_count).start();
-                unauthorised_count++;
+                unauthorised_clients.put(unauthorised_count.get(), new ClientHandler(clientSocket, this, unauthorised_count.get()));
+                unauthorised_clients.get(unauthorised_count.get()).start();
+                unauthorised_count.getAndIncrement();
             }
         } catch (Exception e){
 
@@ -71,7 +72,7 @@ public class Server extends Thread{
 
     public boolean leave_call(int user_id, int channel_id){
         //Remove participant from call, notify all current participants, if none left remove call from calls
-
+        
         if (!ongoing_calls.containsKey(channel_id)){ // if no call, return false
             return false;
         }
@@ -88,6 +89,21 @@ public class Server extends Thread{
         }
         return true;
     }
+        
+    public CallParticipant[] join_call(int channel_id, ClientHandler c){
+        if (!ongoing_calls.containsKey(channel_id)){
+            return null;
+        }
+        
+        CallParticipant joined = new CallParticipant(c.get_ip(), c.get_user_id(), c.get_username());
+
+        for (int id : ongoing_calls.get(channel_id).keySet()){
+            authorised_clients.get(id).notify_on_participant_joining(joined);
+        }
+
+        ongoing_calls.get(channel_id).put(c.get_user_id(), joined);
+        return get_call_participants(channel_id);
+    }
 
     public CallParticipant[] get_call_participants(int channel_id){
         //Return a list of all call participants
@@ -101,11 +117,9 @@ public class Server extends Thread{
     public void stop_clients(){
         for (int id : unauthorised_clients.keySet()){
             unauthorised_clients.get(id).kill_self();
-            unauthorised_clients.remove(id);
         }
         for (int id : authorised_clients.keySet()){
             authorised_clients.get(id).kill_self();
-            authorised_clients.remove(id);
         }  
     }
 

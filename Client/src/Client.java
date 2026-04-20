@@ -19,9 +19,11 @@ import java.awt.image.BufferedImage;
 public class Client{
     private final String SERVER_HOST = "localhost";
     private final int SERVER_PORT = 4567;
-    
+    private final int CALL_NOTIFY_PORT = 6767;
+
     private boolean call_incoming;
     private boolean in_call;
+    private int call_in_channel;
 
     //State variables
     private String username;
@@ -30,13 +32,12 @@ public class Client{
     private boolean camera_enabled;
     private PrivateKey client_private_key;
     private PublicKey server_public_key;
-
-    private Stack<String[]> NotificationStack;
-
+ 
     //Server communication values
     private Socket socket;
     private BufferedReader client_in;
     private BufferedWriter client_out;
+    private CallHandler callHandler;
 
     public Client() throws Exception{
         //Initialise state variables
@@ -67,6 +68,7 @@ public class Client{
         if (msg[0].equals("HELO") && msg.length == 2){
             server_public_key = EncryptionManager.public_key_from_string(msg[1]); //Extract servers public key from the message received
         }
+        Socket call_socket = new Socket(SERVER_HOST, CALL_NOTIFY_PORT);
     }
 
     public void quit(){
@@ -87,8 +89,22 @@ public class Client{
         return in_call;
     }
 
-    public String[] get_users_in_call(){
+    public boolean get_call_channel(){
+        return call_in_channel;
+    }
 
+    public void notify_call_incoming(int channel_id){
+        call_in_channel = channel_id;
+        call_incoming = true;
+    }
+
+    public void notify_call_ended(){
+        call_in_channel = -1;
+        call_incoming = false;
+    }
+
+    public String[] get_users_in_call(){
+        
     }
 
     public Integer[] get_channel_ids(){
@@ -107,19 +123,32 @@ public class Client{
     }
 
     public void start_call(int channel_id){
-
+        client_out.write(EncryptionManager.encrypt_message("CALL " + channel_id, server_public_key));
+        client_out.write('\n');
+        client_out.flush();
     }
 
     public void join_call(int channel_id){
-
+        client_out.write(EncryptionManager.encrypt_message("CONNECT " + channel_id, server_public_key));
+        client_out.write('\n');
+        client_out.flush();
+        String in;
+        ArrayList<String> usernames = new ArrayList<String>();
+        ArrayList<String> ips = new ArrayList<String>();
+        
+        //Read all peers to connect to
+        while (!((in = EncryptionManager.decrypt_message(client_in.nextLine(), client_private_key)).equals("LSDONE"))){
+            String[] args = in.split(" ");
+            usernames.add(args[0]);
+            ips.add(args[1]);
+        }
+        callHandler.connect_on_join_call(usernames.toArray(new String[usernames.size()]), ips.toArray(new String[ips.size()]));
     }
 
     public void leave_call(int channel_id){
-
-    }
-
-    public String get_username() {
-        return this.username;
+        client_out.write(EncryptionManager.encrypt_message("DISCONNECT " + channel_id, server_public_key));
+        client_out.write('\n');
+        client_out.flush();
     }
 
     public void request_messages(int channel_id) throws Exception{
