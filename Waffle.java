@@ -6,6 +6,7 @@ import javax.swing.*;
 public class Waffle {
 
     private static Client client;
+    private int currentChannelId = 0; // track selected chat
 
 
     static final Color BarCol = new Color(85,85,85);
@@ -89,10 +90,17 @@ public class Waffle {
         //list of example contacts (will be replaced with server query)
         String[] contacts = {"Isaac","Joe","Matvii", "Michal", "Olivier", "Will"};
 
+        JPanel chats = new JPanel();
+        chats.setLayout(new BoxLayout(chats, BoxLayout.PAGE_AXIS));
+        chats.setBackground(BarCol);
+        chats.add(Box.createVerticalGlue());
+
         //loop that takes the list of contacts and makes buttons to populate "contacts" menu
         for (int i = 0; i < contacts.length; i++) {
             String name = contacts[i];
             JButton contact= new JButton(name);
+            int channelId = i;
+
             contact.setMaximumSize(new Dimension(Integer.MAX_VALUE,40));
             contact.setAlignmentX(Component.LEFT_ALIGNMENT);
             contact.setBackground(ConCol);
@@ -100,6 +108,29 @@ public class Waffle {
             contact.setFocusPainted(false);
             contact.setBorderPainted(false);
             contact.setOpaque(true);
+
+
+            contact.addActionListener(e -> {
+                currentChannelID = channelId;
+
+                try {
+                    client.request_messages(channelId);
+                    chats.removeAll();
+
+                    Message[] messages = client.get_messages(channelId);
+                    if (messages != null) {
+                        for (Message m : messages) {
+                            boolean sentBy = m.get_username().equals(client.get_username());
+                            chats.add(sendMessage(m.get_content(), sentBy));
+                        }
+                    }
+                    chats.revalidate();
+                    chats.repaint();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
+
             contactsPanel.add(contact);
             contactsPanel.add(Box.createVerticalStrut(5));
         }
@@ -180,11 +211,6 @@ public class Waffle {
         outerPanel.add(innerPanel, BorderLayout.CENTER);
 
 
-        JPanel chats = new JPanel();
-        chats.setLayout(new BoxLayout(chats, BoxLayout.PAGE_AXIS));
-        chats.setBackground(BarCol);
-        chats.add(Box.createVerticalGlue());
-
         JScrollPane scroll = new JScrollPane(chats);
         scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scroll.getViewport().setBackground(BarCol);
@@ -194,7 +220,52 @@ public class Waffle {
         innerPanel.add(scroll, BorderLayout.CENTER);
 
 
-        sendButton.addActionListener(client.send_message(writeText.getText()));
+        sendButton.addActionListener(e -> {
+            try {
+                String text = writeText.getText();
+
+                if (!text.isEmpty()) {
+                    client.send_message(text, currentChannelId);
+
+                    chats.add(sendMessage(text, true));
+                    chats.revalidate();
+
+                    writeText.setText("");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        newChat.addActionListener(e -> {
+            String name = JOptionPane.showInputDialog("Enter username:");
+            if (name != null) {
+                try {
+                    client.create_channel(name);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        newGroup.addActionListener(e -> {
+            String name = JOptionPane.showInputDialog("Enter group name:");
+            if (name != null) {
+                try {
+                    client.create_channel(name);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        signOut.addActionListener(e -> {
+            client.quit();
+            System.exit(0);
+        });
+
+        muteButton.addActionListener(e -> client.mute_microphone());
+        pinButton.addActionListener(e -> System.out.println("Pinned"));
 
 
 
